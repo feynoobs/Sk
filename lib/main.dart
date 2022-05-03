@@ -6,7 +6,7 @@ void main() {
          MaterialApp(
             initialRoute: '/home_timeline',
             routes: <String, WidgetBuilder>{
-                '/home_timeline':(BuildContext context) => HomeTimeline()
+                '/home_timeline':(BuildContext context) => const HomeTimeline()
             },
             theme: ThemeData(
                 primarySwatch: Colors.blue
