@@ -19,13 +19,12 @@ abstract class ApiCommon
 
     ApiCommon(this._entryPoint, this._method);
 
-    start(Map<String, String> params);
-    finish(String result);
+    Future<String> start(Map<String, String> params);
 
-    Future<void> startMain(Map<String, String> params, Map<String, String>? fixedToken)
+    Future<String> startMain([Map<String, String>? params, Map<String, String>? fixedToken])
     {
         _logger.v('startMain(${params}, ${fixedToken})');
-        Completer computer = Completer<void>();
+        Completer<String> computer = Completer<String>();
         Map<String, String> headerParams = {
             'oauth_consumer_key': _API_KEY,
             'oauth_nonce': DateTime.now().toUtc().millisecondsSinceEpoch.toString(),
@@ -35,13 +34,17 @@ abstract class ApiCommon
         };
         String signatureKey = Uri.encodeFull(_API_SECRET) + '&';
         if (fixedToken == null) {
-            headerParams['oauth_token'] = params['oauth_token']!;
-            signatureKey += Uri.encodeComponent(params['oauth_token_secret']!);
+            if (params != null) {
+                headerParams['oauth_token'] = params['oauth_token']!;
+                signatureKey += Uri.encodeComponent(params['oauth_token_secret']!);
+            }
         }
         else {
             headerParams['oauth_token'] = fixedToken['oauth_token']!;
             signatureKey += Uri.encodeComponent(fixedToken['oauth_token_secret']!);
-            headerParams.addAll(params);
+            if (params != null) {
+                headerParams.addAll(params);
+            }
         }
         Map<String, String> sortParams = SplayTreeMap.from(headerParams, (String a, String b) => a.compareTo(b));
         String query = '';
@@ -84,4 +87,5 @@ abstract class ApiCommon
 
         return computer.future;
     }
+
 }

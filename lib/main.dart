@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'screen/home_timeline.dart';
 
-void main() {
+void main()
+{
     runApp(
          MaterialApp(
             initialRoute: '/home_timeline',
