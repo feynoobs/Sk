@@ -7,6 +7,6 @@ class ApiRequestToken extends ApiCommon
     @override
     Future<String> start(Map<String, String> params)
     {
-        return startMain();
+        return startMain({'oauth_callback': ApiCommon.CALLBACK_URL});
     }
 }

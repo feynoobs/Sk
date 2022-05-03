@@ -21,31 +21,35 @@ abstract class ApiCommon
 
     Future<String> start(Map<String, String> params);
 
-    Future<String> startMain([Map<String, String>? params, Map<String, String>? fixedToken])
+    Future<String> startMain(Map<String, String> params, [Map<String, String>? fixedToken])
     {
         _logger.v('startMain(${params}, ${fixedToken})');
         Completer<String> computer = Completer<String>();
         Map<String, String> headerParams = {
             'oauth_consumer_key': _API_KEY,
             'oauth_nonce': DateTime.now().toUtc().millisecondsSinceEpoch.toString(),
-            'oauth_signature_method': 'MAC-SHA1',
+            'oauth_signature_method': 'HMAC-SHA1',
             'oauth_timestamp': (DateTime.now().toUtc().millisecondsSinceEpoch / 1000).floor().toString(),
             'oauth_version': '1.0',
         };
         String signatureKey = Uri.encodeFull(_API_SECRET) + '&';
         if (fixedToken == null) {
-            if (params != null) {
+            if (params.containsKey('oauth_token') == true) {
                 headerParams['oauth_token'] = params['oauth_token']!;
+            }
+            if (params.containsKey('oauth_token_secret') == true) {
                 signatureKey += Uri.encodeComponent(params['oauth_token_secret']!);
+            }
+            if (params.containsKey('oauth_callback') == true) {
+                headerParams['oauth_callback'] = params['oauth_callback']!;
             }
         }
         else {
             headerParams['oauth_token'] = fixedToken['oauth_token']!;
             signatureKey += Uri.encodeComponent(fixedToken['oauth_token_secret']!);
-            if (params != null) {
-                headerParams.addAll(params);
-            }
+            headerParams.addAll(params);
         }
+
         Map<String, String> sortParams = SplayTreeMap.from(headerParams, (String a, String b) => a.compareTo(b));
         String query = '';
         sortParams.forEach((key, value) {
@@ -62,7 +66,7 @@ abstract class ApiCommon
             value = Uri.encodeComponent(value);
             header += '${key}=${value},';
         });
-        header = Uri.encodeComponent(header.substring(0, header.length - 1));
+        header = header.substring(0, header.length - 1);
 
         final Uri url = Uri.parse(_entryPoint);
         if (_method == 'GET') {
@@ -70,7 +74,7 @@ abstract class ApiCommon
             http.get(requstUrl, headers: {
                 'Authorization': 'OAuth ${header}',
             })
-            .then((http.Response response) => null);
+            .then((http.Response response) => computer.complete(response.body));
         }
         else {
             final Uri requstUrl = Uri.https(url.host, url.path);
@@ -82,7 +86,7 @@ abstract class ApiCommon
             http.post(requstUrl, body: body, headers: {
                 'Authorization': 'OAuth ${header}',
             })
-            .then((http.Response response) => null);
+            .then((http.Response response) => computer.complete(response.body));
         }
 
         return computer.future;
