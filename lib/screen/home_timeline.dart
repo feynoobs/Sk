@@ -5,6 +5,7 @@ import 'package:logger/logger.dart';
 
 import '../database/db.dart';
 import '../api/api_request_token.dart';
+import '../utility/utility.dart';
 
 class HomeTimeline extends StatefulWidget
 {
@@ -36,7 +37,12 @@ class _HomeTimelineState extends State<HomeTimeline>
                 if (user.isEmpty == true) {
                     ApiRequestToken().start({})
                         .then((String query) {
-                            _logger.e(query);
+                            Map<String, String> params = Utility.splitQuery(query);
+                            Navigator.pushNamed(
+                                context,
+                                'authentication',
+                                arguments: params
+                            );
                         });
                 }
             });
@@ -45,8 +51,7 @@ class _HomeTimelineState extends State<HomeTimeline>
     @override
     Widget build(BuildContext context)
     {
-         return Scaffold
-         (
+         return Scaffold(
              floatingActionButton: FloatingActionButton(
                  onPressed: () => null,
                  child: const Icon(Icons.add)
