@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:logger/logger.dart';
 
+import '../database/db.dart';
 import '../api/api_request_token.dart';
 
 class HomeTimeline extends StatefulWidget
@@ -19,9 +22,24 @@ class _HomeTimelineState extends State<HomeTimeline>
     void initState()
     {
         super.initState();
-        Map<String, String> params = {};
-        ApiRequestToken api = ApiRequestToken();
-        api.start(params).then((value) => _logger.i('OK'));
+
+        late int my;
+        SharedPreferences.getInstance()
+            .then((SharedPreferences prefs) {
+                my = prefs.getInt('my') ?? 0;
+                return DB.getInstance();
+            })
+            .then((Database database) {
+                return database.rawQuery('SELECT oauth_token, oauth_token_secret FROM t_users WHERE my = ?', [my.toString()]);
+            })
+            .then((List<Map<String, Object?>> user) {
+                if (user.isEmpty == true) {
+                    ApiRequestToken().start({})
+                        .then((String query) {
+                            _logger.e(query);
+                        });
+                }
+            });
     }
 
     @override
