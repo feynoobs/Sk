@@ -4,8 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:logger/logger.dart';
 
-import '../api/api_request_token.dart';
-import '../utility/utility.dart';
+import 'common.dart';
 
 class Authentication extends StatefulWidget
 {
@@ -33,15 +32,15 @@ class _AuthenticationState extends State<Authentication>
     {
         Map<String, String> params = ModalRoute.of(context)!.settings.arguments as Map<String, String>;
         return Scaffold(
-            appBar: null,
+            appBar: const EmptyAppBar(),
             body: WebView(
                 initialUrl: "https://api.twitter.com/oauth/authorize?oauth_token=${params['oauth_token']}",
                 javascriptMode: JavascriptMode.unrestricted,
-                onPageFinished: (String url) {
-                    _logger.e(url);
+                navigationDelegate: (NavigationRequest request) {
+                    Navigator.pop(context, request.url);
+                    return NavigationDecision.prevent;
                 }
             ),
         );
     }
-
 }

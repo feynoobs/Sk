@@ -3,7 +3,9 @@ import 'package:sqflite/sqflite.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:logger/logger.dart';
 
+import 'common.dart';
 import '../database/db.dart';
+import '../api/api_common.dart';
 import '../api/api_request_token.dart';
 import '../utility/utility.dart';
 
@@ -38,11 +40,16 @@ class _HomeTimelineState extends State<HomeTimeline>
                     ApiRequestToken().start({})
                         .then((String query) {
                             Map<String, String> params = Utility.splitQuery(query);
-                            Navigator.pushNamed(
+                            return Navigator.pushNamed(
                                 context,
                                 'authentication',
                                 arguments: params
-                            );
+                            )
+                            .then((dynamic callback) {
+                                String query2 = (callback as String).replaceAll('${ApiCommon.CALLBACK_URL}?', '');
+                                Map<String, String> params2 = Utility.splitQuery(query2);
+                                _logger.e(params2);
+                            });
                         });
                 }
             });
@@ -52,6 +59,7 @@ class _HomeTimelineState extends State<HomeTimeline>
     Widget build(BuildContext context)
     {
          return Scaffold(
+             appBar: const EmptyAppBar(),
              floatingActionButton: FloatingActionButton(
                  onPressed: () => null,
                  child: const Icon(Icons.add)
