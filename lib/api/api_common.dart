@@ -34,15 +34,15 @@ abstract class ApiCommon
         };
         String signatureKey = Uri.encodeFull(_API_SECRET) + '&';
         if (fixedToken == null) {
-            if (params.containsKey('oauth_token') == true) {
-                headerParams['oauth_token'] = params['oauth_token']!;
-            }
-            if (params.containsKey('oauth_token_secret') == true) {
-                signatureKey += Uri.encodeComponent(params['oauth_token_secret']!);
-            }
-            if (params.containsKey('oauth_callback') == true) {
-                headerParams['oauth_callback'] = params['oauth_callback']!;
-            }
+            params.forEach((String key, String value) {
+                if (key == 'oauth_token_secret') {
+                    signatureKey += Uri.encodeComponent(value);
+                }
+                else {
+                    headerParams[key] = value;
+                }
+
+            });
         }
         else {
             headerParams['oauth_token'] = fixedToken['oauth_token']!;
