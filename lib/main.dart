@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import 'screen/home_timeline.dart';
 import 'screen/authentication.dart';
-
 void main()
 {
     runApp(

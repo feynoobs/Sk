@@ -104,7 +104,8 @@ class _HomeTimelineState extends State<HomeTimeline>
                         'include_rts': true.toString(),
                         'tweet_mode': 'extended'
                     };
-                    ApiStatusesHomeTimeline().start(requestData);
+                    ApiStatusesHomeTimeline().start(requestData)
+                        .then((json) => _logger.e(json));
                 }
             });
     }
