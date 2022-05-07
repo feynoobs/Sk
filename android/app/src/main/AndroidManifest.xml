@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.sk">
+    package="jp.co.fssoft.sk">
    <application
-        android:label="sk"
+        android:label="Sk"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
