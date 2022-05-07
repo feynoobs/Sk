@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -75,7 +78,6 @@ class _HomeTimelineState extends State<HomeTimeline>
                                                 return ApiUsersShow().start(userData);
                                             })
                                             .then((String json) {
-                                                _logger.e(json);
                                                 return database.rawInsert(
                                                     'INSERT INTO t_users(user_id, oauth_token, oauth_token_secret, my, data, created_at, updated_at) VALUES(?, ?, ?, ?, ?, ?, ?)',
                                                     [authData['user_id'], authData['oauth_token'], authData['oauth_token_secret'], (my + 1).toString(), json, Utility.now(), Utility.now()]
@@ -105,7 +107,28 @@ class _HomeTimelineState extends State<HomeTimeline>
                         'tweet_mode': 'extended'
                     };
                     ApiStatusesHomeTimeline().start(requestData)
-                        .then((json) => _logger.e(json));
+                        .then((String jsonString) {
+                            List<dynamic> jsonObject = json.decode(jsonString);
+                            return database.transaction((Transaction txn) {
+                                Completer<void> computer = Completer<void>();
+                                int complate = 0;
+                                jsonObject.forEach((tweet) {
+                                    txn.rawInsert(
+                                        'INSERT INTO t_time_lines(tweet_id, reply_tweet_id, user_id, data, created_at, updated_at) VALUES(?, ?, ?, ?, ?, ?)',
+                                        [tweet['id'], tweet['in_reply_to_user_id'], tweet['user']['id'], tweet, Utility.now(), Utility.now()]
+                                    )
+                                        .then((int status) {
+                                            ++complate;
+                                            if (complate >= jsonObject.length) {
+                                                return computer.complete();
+                                            }
+                                        });
+                                });
+                                return computer.future;
+                            });
+                        })
+                        .then((_) {
+                        });
                 }
             });
     }
