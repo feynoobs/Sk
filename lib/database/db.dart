@@ -1,8 +1,13 @@
+import 'dart:async';
+
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:logger/logger.dart';
 
 class DB
 {
+    static final Logger _logger = Logger();
+
     static Future<Database>? _instance;
 
     static Future<Database> getInstance() async
@@ -21,10 +26,7 @@ class DB
                             oauth_token_secret TEXT DEFAULT NULL,   -- Twitter認証してもらう.NULLなら自分以外
                             my INTEGER DEFAULT NULL,                -- 自分の場合シーケンシャルな番号.他人ならNULL
 
-                            data JSON NOT NULL,                     -- ダウンロードされたJSONデータ
-
-                            created_at TEXT NOT NULL,
-                            updated_at TEXT NOT NULL
+                            data JSON NOT NULL                      -- ダウンロードされたJSONデータ
                         )
                     '''
                 );
@@ -50,10 +52,7 @@ class DB
                             data JSON NOT NULL,                     -- ダウンロードされたJSONデータ
                             ogp_card_type INTEGER DEFAULT NULL,     -- OGP CARD SIZE NULL:OPGなし/1:small/2:large
                             ogp_card_desc TEXT DEFAULT NULL,        -- OGP description NULL:OPGなし/NULL以外:ディスクリプション
-                            ogp_image_url TEXT DEFAULT NULL,        -- OGP image url NULL:イメージなし/NULL以外:画像URL
-
-                            created_at TEXT NOT NULL,
-                            updated_at TEXT NOT NULL
+                            ogp_image_file TEXT DEFAULT NULL        -- OGP image url NULL:イメージなし/NULL以外:画像URL
                         )
                     '''
                 );
@@ -77,9 +76,7 @@ class DB
                         CREATE TABLE r_home_tweets(
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             tweet_id INTEGER NOT NULL,              -- ツィートID
-                            my INTEGER NOT NULL,                    -- シーケンシャルな番号
-                            created_at TEXT NOT NULL,
-                            updated_at TEXT NOT NULL
+                            my INTEGER NOT NULL                     -- シーケンシャルな番号
                         )
                     '''
                 );
@@ -94,9 +91,7 @@ class DB
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             type INTEGER NOT NULL DEFAULT 1,        -- 1:いいね/2:RT
                             tweet_id INTEGER NOT NULL,              -- ツィートID
-                            my INTEGER NOT NULL,                    -- シーケンシャルなユーザー番号
-                            created_at TEXT NOT NULL,
-                            updated_at TEXT NOT NULL
+                            my INTEGER NOT NULL                     -- シーケンシャルなユーザー番号
                         )
                     '''
                 );
@@ -109,5 +104,41 @@ class DB
         );
 
         return _instance!;
+    }
+
+    static Future<int> insert(Transaction txn, String table, List<Map<String, Object?>> datas)
+    {
+        Completer<int> computer = Completer<int>();
+        List<String?> binding = [];
+
+        String query = 'INSERT INTO ${table}(';
+        datas[0].forEach((key, value) {
+            query += '${key},';
+        });
+        query = query.substring(0, query.length - 1);
+        query += ')VALUES';
+        datas.forEach((Map<String, Object?> element) {
+            query += '(';
+            element.forEach((key1, value1) {
+                query += '?,';
+                if (value1 == null) {
+                    binding.add(null);
+                }
+                else {
+                    binding.add(value1.toString());
+                }
+            });
+            query = query.substring(0, query.length - 1);
+            query += '),';
+        });
+        query = query.substring(0, query.length - 1);
+
+        _logger.e(query);
+        txn.rawInsert(query, binding)
+        .then((int status) {
+            return computer.complete(status);
+        });
+
+        return computer.future;
     }
 }
