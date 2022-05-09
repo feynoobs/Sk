@@ -124,13 +124,13 @@ class _HomeTimelineState extends State<HomeTimeline>
                 });
             });
         });
-
     }
 
     Widget _memuItem(int id, int myUserId, String jsonString)
     {
-        Map<String, Object?> jsonObject = json.decode(jsonString);
-        Map<String, Object?> userObject = jsonObject['user'] as Map<String, Object?>;
+        Map<String, Object?> tweetObject = json.decode(jsonString);
+        Map<String, Object?> userObject = tweetObject['user'] as Map<String, Object?>;
+        _logger.e(tweetObject['created_at']);
         return Card(
             child: Column(
                 children: <Widget>[
@@ -142,12 +142,12 @@ class _HomeTimelineState extends State<HomeTimeline>
                                         overflow: TextOverflow.ellipsis,
                                         text: TextSpan(
                                             children: <InlineSpan>[
-                                                TextSpan(text: userObject['name'] as String),
-                                                TextSpan(text: '@' + (userObject['screen_name'] as String), style: const TextStyle(fontStyle: FontStyle.italic))
+                                                TextSpan(text: userObject['name'] as String, style: const TextStyle(color: Colors.black)),
+                                                TextSpan(text: '@' + (userObject['screen_name'] as String), style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.black))
                                             ],
                                         )
                                     ),
-                                    Text(jsonObject['created_at'] as String)
+                                    Text(Utility.createFuzzyDateTime(tweetObject['created_at'] as String))
                                 ]
                             )
                         ]

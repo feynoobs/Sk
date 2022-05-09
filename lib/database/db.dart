@@ -133,7 +133,6 @@ class DB
         });
         query = query.substring(0, query.length - 1);
 
-        _logger.e(query);
         txn.rawInsert(query, binding)
         .then((int status) {
             return computer.complete(status);
