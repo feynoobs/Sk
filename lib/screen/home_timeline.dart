@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
@@ -119,10 +120,41 @@ class _HomeTimelineState extends State<HomeTimeline>
         })
         .then((List<Map<String, dynamic>> tweets) {
             setState(() {
-                tweets.forEach((Map<String, dynamic> tweet) {
-                    _logger.e(tweet);
-                    _tweets.add(_memuItem(tweet['id'] as int, 0, tweet['data']));
-                });
+                for (int i = 0; i < tweets.length; ++i) {
+                    _logger.e(tweets[i]);
+                    Map<String, Object?> tweetObject =  json.decode(tweets[i]['data']) as Map<String, Object?>;
+                    Map<String, Object?> userObject = tweetObject['user'] as Map<String, Object?>;
+                    Imager.load(userObject['profile_image_url_https'] as String, (String path) {
+                        _tweets.add(
+                            Card(
+                                child: Row(
+                                    children: [
+                                        Image.file(File(path)),
+                                        Column(
+                                            children: <Widget>[
+                                                Row(
+                                                    children: [
+                                                        RichText(
+                                                            overflow: TextOverflow.ellipsis,
+                                                            text: TextSpan(
+                                                                children: <InlineSpan>[
+                                                                    TextSpan(text: userObject['name'] as String, style: const TextStyle(color: Colors.black)),
+                                                                    TextSpan(text: '@' + (userObject['screen_name'] as String), style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.black))
+                                                                ],
+                                                            )
+                                                        ),
+                                                        Text(Utility.createFuzzyDateTime(tweetObject['created_at'] as String))
+                                                    ]
+                                                ),
+                                                Text(tweetObject['full_text'] as String)
+                                            ]
+                                        )
+                                    ]
+                                )
+                            )
+                        );
+                    });
+                }
             });
         });
     }
@@ -131,35 +163,31 @@ class _HomeTimelineState extends State<HomeTimeline>
     {
         Map<String, Object?> tweetObject = json.decode(jsonString);
         Map<String, Object?> userObject = tweetObject['user'] as Map<String, Object?>;
-        Imager.load(userObject['profile_image_url_https'] as String);
         _logger.e(tweetObject);
         return Card(
-            child: Column(
+            child: Row(
                 children: <Widget>[
-                    Row(
+                    Image.file(File(tweetObject['profile_image_path'] as String)),
+                    Column(
                         children: <Widget>[
-                            Column(
+                            Row(
                                 children: <Widget>[
-                                    Row(
-                                        children: <Widget>[
-                                            RichText(
-                                                overflow: TextOverflow.ellipsis,
-                                                text: TextSpan(
-                                                    children: <InlineSpan>[
-                                                        TextSpan(text: userObject['name'] as String, style: const TextStyle(color: Colors.black)),
-                                                        TextSpan(text: '@' + (userObject['screen_name'] as String), style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.black))
-                                                    ],
-                                                )
-                                            ),
-                                            Text(tweetObject['created_at'] as String)
-                                        ]
+                                    RichText(
+                                        overflow: TextOverflow.ellipsis,
+                                        text: TextSpan(
+                                            children: <InlineSpan>[
+                                                TextSpan(text: userObject['name'] as String, style: const TextStyle(color: Colors.black)),
+                                                TextSpan(text: '@' + (userObject['screen_name'] as String), style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.black))
+                                            ],
+                                        )
                                     ),
-                                    Text(tweetObject['full_text'] as String)
+                                    Text(tweetObject['created_at'] as String)
                                 ]
-                            )
+                            ),
+                            Text(tweetObject['full_text'] as String)
                         ]
                     )
-                ],
+                ]
             )
         );
     }

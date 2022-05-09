@@ -24,7 +24,7 @@ class Utility
         late String ret;
         int now = (DateTime.now().millisecondsSinceEpoch / 1000).floor();
 
-        DateTime input = DateFormat('EEE MMM dd HH:mm:ss Z yyyy').parse(dateTime);
+        DateTime input = DateFormat('EEE MMM dd HH:mm:ss yyyy').parse(dateTime.replaceAll('+0000 ', ''));
         int postTime =  (input.millisecondsSinceEpoch / 1000).floor();
         int timeDiff = now - postTime;
 

@@ -76,6 +76,9 @@ class Imager
                 else {
                     _requests[url] = <Function(String)>[callback];
                 }
+                if (_running == false) {
+                    _runner(dir);
+                }
             }
         });
     }
