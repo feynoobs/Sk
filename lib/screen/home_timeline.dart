@@ -13,6 +13,7 @@ import '../api/api_request_token.dart';
 import '../api/api_access_token.dart';
 import '../api/api_users_show.dart';
 import '../api/api_statuses_home_timeline.dart';
+import '../utility/imager.dart';
 import '../utility/utility.dart';
 
 class HomeTimeline extends StatefulWidget
@@ -49,7 +50,7 @@ class _HomeTimelineState extends State<HomeTimeline>
                 Map<String, String> requestData = {
                     'oauth_token': user[0]['oauth_token'] as String,
                     'oauth_token_secret': user[0]['oauth_token_secret'] as String,
-                    'count': 1.toString(),
+                    'count': 10.toString(),
                     'exclude_replies': false.toString(),
                     'contributor_details': false.toString(),
                     'include_rts': true.toString(),
@@ -130,7 +131,8 @@ class _HomeTimelineState extends State<HomeTimeline>
     {
         Map<String, Object?> tweetObject = json.decode(jsonString);
         Map<String, Object?> userObject = tweetObject['user'] as Map<String, Object?>;
-        _logger.e(tweetObject['created_at']);
+        Imager.load(userObject['profile_image_url_https'] as String);
+        _logger.e(tweetObject);
         return Card(
             child: Column(
                 children: <Widget>[
@@ -138,16 +140,21 @@ class _HomeTimelineState extends State<HomeTimeline>
                         children: <Widget>[
                             Column(
                                 children: <Widget>[
-                                    RichText(
-                                        overflow: TextOverflow.ellipsis,
-                                        text: TextSpan(
-                                            children: <InlineSpan>[
-                                                TextSpan(text: userObject['name'] as String, style: const TextStyle(color: Colors.black)),
-                                                TextSpan(text: '@' + (userObject['screen_name'] as String), style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.black))
-                                            ],
-                                        )
+                                    Row(
+                                        children: <Widget>[
+                                            RichText(
+                                                overflow: TextOverflow.ellipsis,
+                                                text: TextSpan(
+                                                    children: <InlineSpan>[
+                                                        TextSpan(text: userObject['name'] as String, style: const TextStyle(color: Colors.black)),
+                                                        TextSpan(text: '@' + (userObject['screen_name'] as String), style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.black))
+                                                    ],
+                                                )
+                                            ),
+                                            Text(tweetObject['created_at'] as String)
+                                        ]
                                     ),
-                                    Text(Utility.createFuzzyDateTime(tweetObject['created_at'] as String))
+                                    Text(tweetObject['full_text'] as String)
                                 ]
                             )
                         ]

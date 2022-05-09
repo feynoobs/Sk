@@ -43,6 +43,7 @@ dependencies:
   shared_preferences:
   webview_flutter:
   intl:
+  path_provider:
 
 dev_dependencies:
   flutter_test:
