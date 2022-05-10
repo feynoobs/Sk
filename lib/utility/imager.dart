@@ -45,6 +45,7 @@ class Imager
 
     static void save(String url)
     {
+        _logger.v('save(${url})');
         getTemporaryDirectory()
         .then((Directory dir) {
             final Uri uri = Uri.parse(url);
@@ -62,6 +63,7 @@ class Imager
 
     static void load(String url, Function(String) callback)
     {
+        _logger.v('load(${url}, ${callback})');
         getTemporaryDirectory()
         .then((Directory dir) {
             final Uri uri = Uri.parse(url);

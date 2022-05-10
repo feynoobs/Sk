@@ -30,6 +30,161 @@ class _HomeTimelineState extends State<HomeTimeline>
     final Logger _logger = Logger();
     final List<Widget> _tweets = [];
 
+    Future<void> _getNextPrevTimeline()
+    {
+        Completer<void> computer = Completer<void>();
+        late SharedPreferences prefs;
+        late Database database;
+
+        SharedPreferences.getInstance()
+        .then((SharedPreferences p) {
+            prefs = p;
+            return DB.getInstance();
+        })
+        .then((Database db) {
+            int my = prefs.getInt('my') ?? 0;
+            database = db;
+            return db.rawQuery('SELECT oauth_token, oauth_token_secret FROM t_users WHERE my = ?', [my.toString()]);
+        })
+        .then((List<Map<String, Object?>> user) {
+            if (user.isNotEmpty == true) {
+                int my = prefs.getInt('my') ?? 0;
+                database.rawQuery('SELECT MIN(tweet_id) as min_id FROM r_home_tweets WHERE my = ?', [my.toString()])
+                .then((List<Map<String, Object?>> tweets) {
+                    Map<String, String> requestData = {
+                        'oauth_token': user[0]['oauth_token'] as String,
+                        'oauth_token_secret': user[0]['oauth_token_secret'] as String,
+                        'count': 10.toString(),
+                        'exclude_replies': false.toString(),
+                        'contributor_details': false.toString(),
+                        'include_rts': true.toString(),
+                        'tweet_mode': 'extended'
+                    };
+                    if (tweets[0]['min_id'] != null) {
+                        int min = int.parse(tweets[0]['min_id'] as String);
+                        requestData['max_id'] = (min - 1).toString();
+                    }
+                    ApiStatusesHomeTimeline().start(requestData)
+                    .then((String jsonString) {
+                        List<dynamic> jsonObject = json.decode(jsonString);
+                        List<Map<String, Object?>> datas = [];
+                        for (int i = 0; i < jsonObject.length; ++i) {
+                            Map<String, Object?> data = {};
+                            data['tweet_id'] = jsonObject[i]['id'];
+                            data['user_id'] = jsonObject[i]['user']['id'];
+                            data['data'] = json.encode(jsonObject[i]);
+                            data['reply_tweet_id'] = jsonObject[i]['in_reply_to_user_id'];
+                            datas.add(data);
+                        }
+                        database.transaction((Transaction txn) {
+                            Completer<void> txnComputer = Completer<void>();
+                            DB.insert(txn, 't_tweets', datas)
+                            .then((int status1) {
+                                if (status1 != 0) {
+                                    List<Map<String, Object?>> datas = [];
+                                    for (int i = 0; i < jsonObject.length; ++i) {
+                                        Map<String, Object?> data = {};
+                                        data['tweet_id'] = jsonObject[i]['id'];
+                                        data['my'] = prefs.getInt('my') ?? 0;
+                                        datas.add(data);
+                                    }
+                                    DB.insert(txn, 'r_home_tweets', datas)
+                                    .then((int status2) {
+                                        if (status2 != 0) {
+                                            return txnComputer.complete();
+                                        }
+                                    });
+                                }
+                            });
+                            return txnComputer.future;
+                        });
+
+                        return computer.complete();
+                    });
+                });
+            }
+        });
+
+        return computer.future;
+    }
+
+    Future<void> _getNextHomeTimeline()
+    {
+        Completer<void> computer = Completer<void>();
+        late SharedPreferences prefs;
+        late Database database;
+
+        SharedPreferences.getInstance()
+        .then((SharedPreferences p) {
+            prefs = p;
+            return DB.getInstance();
+        })
+        .then((Database db) {
+            int my = prefs.getInt('my') ?? 0;
+            database = db;
+            return db.rawQuery('SELECT oauth_token, oauth_token_secret FROM t_users WHERE my = ?', [my.toString()]);
+        })
+        .then((List<Map<String, Object?>> user) {
+            if (user.isNotEmpty == true) {
+                int my = prefs.getInt('my') ?? 0;
+                database.rawQuery('SELECT MAX(tweet_id) as max_id FROM r_home_tweets WHERE my = ?', [my.toString()])
+                .then((List<Map<String, Object?>> tweets) {
+                    Map<String, String> requestData = {
+                        'oauth_token': user[0]['oauth_token'] as String,
+                        'oauth_token_secret': user[0]['oauth_token_secret'] as String,
+                        'count': 10.toString(),
+                        'exclude_replies': false.toString(),
+                        'contributor_details': false.toString(),
+                        'include_rts': true.toString(),
+                        'tweet_mode': 'extended'
+                    };
+                    if (tweets[0]['max_id'] != null) {
+                        requestData['since_id'] = tweets[0]['max_id'].toString();
+                    }
+                    ApiStatusesHomeTimeline().start(requestData)
+                    .then((String jsonString) {
+                        List<dynamic> jsonObject = json.decode(jsonString);
+                        List<Map<String, Object?>> datas = [];
+                        for (int i = 0; i < jsonObject.length; ++i) {
+                            Map<String, Object?> data = {};
+                            data['tweet_id'] = jsonObject[i]['id'];
+                            data['user_id'] = jsonObject[i]['user']['id'];
+                            data['data'] = json.encode(jsonObject[i]);
+                            data['reply_tweet_id'] = jsonObject[i]['in_reply_to_user_id'];
+                            datas.add(data);
+                        }
+                        database.transaction((Transaction txn) {
+                            Completer<void> txnComputer = Completer<void>();
+                            DB.insert(txn, 't_tweets', datas)
+                            .then((int status1) {
+                                if (status1 != 0) {
+                                    List<Map<String, Object?>> datas = [];
+                                    for (int i = 0; i < jsonObject.length; ++i) {
+                                        Map<String, Object?> data = {};
+                                        data['tweet_id'] = jsonObject[i]['id'];
+                                        data['my'] = prefs.getInt('my') ?? 0;
+                                        datas.add(data);
+                                    }
+                                    DB.insert(txn, 'r_home_tweets', datas)
+                                    .then((int status2) {
+                                        if (status2 != 0) {
+                                            return txnComputer.complete();
+                                        }
+                                    });
+                                }
+                            });
+                            return txnComputer.future;
+                        });
+
+                        return computer.complete();
+                    });
+                });
+            }
+        });
+
+        return computer.future;
+    }
+
     Future<void> _getHomeTimeline()
     {
         Completer<void> computer = Completer<void>();
@@ -61,26 +216,26 @@ class _HomeTimelineState extends State<HomeTimeline>
                 .then((String jsonString) {
                     List<dynamic> jsonObject = json.decode(jsonString);
                     List<Map<String, Object?>> datas = [];
-                    jsonObject.forEach((element) {
+                    for (int i = 0; i < jsonObject.length; ++i) {
                         Map<String, Object?> data = {};
-                        data['tweet_id'] = element['id'];
-                        data['user_id'] = element['user']['id'];
-                        data['data'] = json.encode(element);
-                        data['reply_tweet_id'] = element['in_reply_to_user_id'];
+                        data['tweet_id'] = jsonObject[i]['id'];
+                        data['user_id'] = jsonObject[i]['user']['id'];
+                        data['data'] = json.encode(jsonObject[i]);
+                        data['reply_tweet_id'] = jsonObject[i]['in_reply_to_user_id'];
                         datas.add(data);
-                    });
+                    }
                     database.transaction((Transaction txn) {
                         Completer<void> txnComputer = Completer<void>();
-                        DB.insert(txn, 't_time_lines', datas)
+                        DB.insert(txn, 't_tweets', datas)
                         .then((int status1) {
                             if (status1 != 0) {
                                 List<Map<String, Object?>> datas = [];
-                                jsonObject.forEach((element) {
+                                for (int i = 0; i < jsonObject.length; ++i) {
                                     Map<String, Object?> data = {};
-                                    data['tweet_id'] = element['id'];
+                                    data['tweet_id'] = jsonObject[i]['id'];
                                     data['my'] = prefs.getInt('my') ?? 0;
                                     datas.add(data);
-                                });
+                                }
                                 DB.insert(txn, 'r_home_tweets', datas)
                                 .then((int status2) {
                                     if (status2 != 0) {
@@ -92,6 +247,7 @@ class _HomeTimelineState extends State<HomeTimeline>
 
                         return txnComputer.future;
                     });
+                    return computer.complete();
                 });
             }
         });
@@ -111,11 +267,11 @@ class _HomeTimelineState extends State<HomeTimeline>
         .then((Database database) {
             int my = prefs.getInt('my') ?? 0;
             return database.rawQuery('''
-                SELECT ttl.*
-                FROM t_time_lines ttl
-                INNER JOIN r_home_tweets rht ON ttl.tweet_id = rht.tweet_id
+                SELECT tt.*
+                FROM t_tweets tt
+                INNER JOIN r_home_tweets rht ON tt.tweet_id = rht.tweet_id
                 WHERE my = ?
-                ORDER BY ttl.tweet_id DESC
+                ORDER BY tt.tweet_id DESC
                 ''', [my.toString()]);
         })
         .then((List<Map<String, dynamic>> tweets) {
@@ -264,7 +420,7 @@ class _HomeTimelineState extends State<HomeTimeline>
                 onPressed: () async {
                     Database database = await DB.getInstance();
                     await database.rawDelete('DELETE FROM t_users');
-                    await database.rawDelete('DELETE FROM t_time_lines');
+                    await database.rawDelete('DELETE FROM t_tweets');
                     await database.rawDelete('DELETE FROM r_home_tweets');
                     await database.rawDelete('DELETE FROM t_tweet_actions');
                     _logger.d('remove... done');

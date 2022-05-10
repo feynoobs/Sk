@@ -42,7 +42,7 @@ class DB
                 );
                 db.execute(
                     '''
-                        CREATE TABLE t_time_lines(
+                        CREATE TABLE t_tweets(
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
 
                             tweet_id INTEGER NOT NULL,              -- ツィートID
