@@ -7,7 +7,7 @@ import 'package:logger/logger.dart';
 class Imager
 {
     static bool _running = false;
-    static Map<String, List<Function(String)?>> _requests = {};
+    static final Map<String, List<Function(String)?>> _requests = {};
     static final Logger _logger = Logger();
 
     static Map<String, Object> _getPathObject(Uri uri, Directory asbDir)
