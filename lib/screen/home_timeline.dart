@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -30,369 +29,156 @@ class _HomeTimelineState extends State<HomeTimeline>
     final Logger _logger = Logger();
     final List<Widget> _tweets = [];
 
-    Future<void> _getNextPrevTimeline()
+    Future<void> _getHomeTimeline([String? type]) async
     {
-        Completer<void> computer = Completer<void>();
-        late SharedPreferences prefs;
-        late Database database;
+        final SharedPreferences prefs = await SharedPreferences.getInstance();
+        final int my = prefs.getInt('my') ?? 0;
 
-        SharedPreferences.getInstance()
-        .then((SharedPreferences p) {
-            prefs = p;
-            return DB.getInstance();
-        })
-        .then((Database db) {
-            int my = prefs.getInt('my') ?? 0;
-            database = db;
-            return db.rawQuery('SELECT oauth_token, oauth_token_secret FROM t_users WHERE my = ?', [my.toString()]);
-        })
-        .then((List<Map<String, Object?>> user) {
-            if (user.isNotEmpty == true) {
-                int my = prefs.getInt('my') ?? 0;
-                database.rawQuery('SELECT MIN(tweet_id) as min_id FROM r_home_tweets WHERE my = ?', [my.toString()])
-                .then((List<Map<String, Object?>> tweets) {
-                    Map<String, String> requestData = {
-                        'oauth_token': user[0]['oauth_token'] as String,
-                        'oauth_token_secret': user[0]['oauth_token_secret'] as String,
-                        'count': 10.toString(),
-                        'exclude_replies': false.toString(),
-                        'contributor_details': false.toString(),
-                        'include_rts': true.toString(),
-                        'tweet_mode': 'extended'
-                    };
-                    if (tweets[0]['min_id'] != null) {
-                        int min = int.parse(tweets[0]['min_id'] as String);
-                        requestData['max_id'] = (min - 1).toString();
-                    }
-                    ApiStatusesHomeTimeline().start(requestData)
-                    .then((String jsonString) {
-                        List<dynamic> jsonObject = json.decode(jsonString);
-                        List<Map<String, Object?>> datas = [];
-                        for (int i = 0; i < jsonObject.length; ++i) {
-                            Map<String, Object?> data = {};
-                            data['tweet_id'] = jsonObject[i]['id'];
-                            data['user_id'] = jsonObject[i]['user']['id'];
-                            data['data'] = json.encode(jsonObject[i]);
-                            data['reply_tweet_id'] = jsonObject[i]['in_reply_to_user_id'];
-                            datas.add(data);
+        final Database database = await DB.getInstance();
+        final List<Map<String, Object?>> user = await database.rawQuery('SELECT oauth_token, oauth_token_secret FROM t_users WHERE my = ?', [my.toString()]);
+        if (user.isNotEmpty == true) {
+            Map<String, String> requestData = {
+                'oauth_token': user[0]['oauth_token'] as String,
+                'oauth_token_secret': user[0]['oauth_token_secret'] as String,
+                'count': 10.toString(),
+                'exclude_replies': false.toString(),
+                'contributor_details': false.toString(),
+                'include_rts': true.toString(),
+                'tweet_mode': 'extended'
+            };
+            if (type != null) {
+                switch (type) {
+                    case 'next':
+                        final List<Map<String, Object?>>  tweets = await database.rawQuery('SELECT MAX(tweet_id) as max_id FROM r_home_tweets WHERE my = ?', [my.toString()]);
+                        if (tweets[0]['max_id'] != null) {
+                            requestData['since_id'] = tweets[0]['max_id'].toString();
                         }
-                        database.transaction((Transaction txn) {
-                            Completer<void> txnComputer = Completer<void>();
-                            DB.insert(txn, 't_tweets', datas)
-                            .then((int status1) {
-                                if (status1 != 0) {
-                                    List<Map<String, Object?>> datas = [];
-                                    for (int i = 0; i < jsonObject.length; ++i) {
-                                        Map<String, Object?> data = {};
-                                        data['tweet_id'] = jsonObject[i]['id'];
-                                        data['my'] = prefs.getInt('my') ?? 0;
-                                        datas.add(data);
-                                    }
-                                    DB.insert(txn, 'r_home_tweets', datas)
-                                    .then((int status2) {
-                                        if (status2 != 0) {
-                                            return txnComputer.complete();
-                                        }
-                                    });
-                                }
-                            });
-                            return txnComputer.future;
-                        });
-
-                        return computer.complete();
-                    });
-                });
-            }
-        });
-
-        return computer.future;
-    }
-
-    Future<void> _getNextHomeTimeline()
-    {
-        Completer<void> computer = Completer<void>();
-        late SharedPreferences prefs;
-        late Database database;
-
-        SharedPreferences.getInstance()
-        .then((SharedPreferences p) {
-            prefs = p;
-            return DB.getInstance();
-        })
-        .then((Database db) {
-            int my = prefs.getInt('my') ?? 0;
-            database = db;
-            return db.rawQuery('SELECT oauth_token, oauth_token_secret FROM t_users WHERE my = ?', [my.toString()]);
-        })
-        .then((List<Map<String, Object?>> user) {
-            if (user.isNotEmpty == true) {
-                int my = prefs.getInt('my') ?? 0;
-                database.rawQuery('SELECT MAX(tweet_id) as max_id FROM r_home_tweets WHERE my = ?', [my.toString()])
-                .then((List<Map<String, Object?>> tweets) {
-                    Map<String, String> requestData = {
-                        'oauth_token': user[0]['oauth_token'] as String,
-                        'oauth_token_secret': user[0]['oauth_token_secret'] as String,
-                        'count': 10.toString(),
-                        'exclude_replies': false.toString(),
-                        'contributor_details': false.toString(),
-                        'include_rts': true.toString(),
-                        'tweet_mode': 'extended'
-                    };
-                    if (tweets[0]['max_id'] != null) {
-                        requestData['since_id'] = tweets[0]['max_id'].toString();
-                    }
-                    ApiStatusesHomeTimeline().start(requestData)
-                    .then((String jsonString) {
-                        List<dynamic> jsonObject = json.decode(jsonString);
-                        List<Map<String, Object?>> datas = [];
-                        for (int i = 0; i < jsonObject.length; ++i) {
-                            Map<String, Object?> data = {};
-                            data['tweet_id'] = jsonObject[i]['id'];
-                            data['user_id'] = jsonObject[i]['user']['id'];
-                            data['data'] = json.encode(jsonObject[i]);
-                            data['reply_tweet_id'] = jsonObject[i]['in_reply_to_user_id'];
-                            datas.add(data);
+                        break;
+                    case 'prev':
+                        final List<Map<String, Object?>>  tweets = await database.rawQuery('SELECT MIN(tweet_id) as min_id FROM r_home_tweets WHERE my = ?', [my.toString()]);
+                        if (tweets[0]['min_id'] != null) {
+                            requestData['max_id'] = ((tweets[0]['min_id'] as int) - 1).toString();
                         }
-                        database.transaction((Transaction txn) {
-                            Completer<void> txnComputer = Completer<void>();
-                            DB.insert(txn, 't_tweets', datas)
-                            .then((int status1) {
-                                if (status1 != 0) {
-                                    List<Map<String, Object?>> datas = [];
-                                    for (int i = 0; i < jsonObject.length; ++i) {
-                                        Map<String, Object?> data = {};
-                                        data['tweet_id'] = jsonObject[i]['id'];
-                                        data['my'] = prefs.getInt('my') ?? 0;
-                                        datas.add(data);
-                                    }
-                                    DB.insert(txn, 'r_home_tweets', datas)
-                                    .then((int status2) {
-                                        if (status2 != 0) {
-                                            return txnComputer.complete();
-                                        }
-                                    });
-                                }
-                            });
-                            return txnComputer.future;
-                        });
-
-                        return computer.complete();
-                    });
-                });
-            }
-        });
-
-        return computer.future;
-    }
-
-    Future<void> _getHomeTimeline()
-    {
-        Completer<void> computer = Completer<void>();
-        late SharedPreferences prefs;
-        late Database database;
-
-        SharedPreferences.getInstance()
-        .then((SharedPreferences p) {
-            prefs = p;
-            return DB.getInstance();
-        })
-        .then((Database db) {
-            int my = prefs.getInt('my') ?? 0;
-            database = db;
-            return db.rawQuery('SELECT oauth_token, oauth_token_secret FROM t_users WHERE my = ?', [my.toString()]);
-        })
-        .then((List<Map<String, Object?>> user) {
-            if (user.isNotEmpty == true) {
-                Map<String, String> requestData = {
-                    'oauth_token': user[0]['oauth_token'] as String,
-                    'oauth_token_secret': user[0]['oauth_token_secret'] as String,
-                    'count': 10.toString(),
-                    'exclude_replies': false.toString(),
-                    'contributor_details': false.toString(),
-                    'include_rts': true.toString(),
-                    'tweet_mode': 'extended'
-                };
-                ApiStatusesHomeTimeline().start(requestData)
-                .then((String jsonString) {
-                    List<dynamic> jsonObject = json.decode(jsonString);
-                    List<Map<String, Object?>> datas = [];
-                    for (int i = 0; i < jsonObject.length; ++i) {
-                        Map<String, Object?> data = {};
-                        data['tweet_id'] = jsonObject[i]['id'];
-                        data['user_id'] = jsonObject[i]['user']['id'];
-                        data['data'] = json.encode(jsonObject[i]);
-                        data['reply_tweet_id'] = jsonObject[i]['in_reply_to_user_id'];
-                        datas.add(data);
-                    }
-                    database.transaction((Transaction txn) {
-                        Completer<void> txnComputer = Completer<void>();
-                        DB.insert(txn, 't_tweets', datas)
-                        .then((int status1) {
-                            if (status1 != 0) {
-                                List<Map<String, Object?>> datas = [];
-                                for (int i = 0; i < jsonObject.length; ++i) {
-                                    Map<String, Object?> data = {};
-                                    data['tweet_id'] = jsonObject[i]['id'];
-                                    data['my'] = prefs.getInt('my') ?? 0;
-                                    datas.add(data);
-                                }
-                                DB.insert(txn, 'r_home_tweets', datas)
-                                .then((int status2) {
-                                    if (status2 != 0) {
-                                        return txnComputer.complete();
-                                    }
-                                });
-                            }
-                        });
-
-                        return txnComputer.future;
-                    });
-                    return computer.complete();
-                });
-            }
-        });
-
-        return computer.future;
-    }
-
-    void _displayHomeTimeline()
-    {
-        late SharedPreferences prefs;
-
-        SharedPreferences.getInstance()
-        .then((SharedPreferences p) {
-            prefs = p;
-            return DB.getInstance();
-        })
-        .then((Database database) {
-            int my = prefs.getInt('my') ?? 0;
-            return database.rawQuery('''
-                SELECT tt.*
-                FROM t_tweets tt
-                INNER JOIN r_home_tweets rht ON tt.tweet_id = rht.tweet_id
-                WHERE my = ?
-                ORDER BY tt.tweet_id DESC
-                ''', [my.toString()]);
-        })
-        .then((List<Map<String, dynamic>> tweets) {
-            setState(() {
-                for (int i = 0; i < tweets.length; ++i) {
-                    _logger.e(tweets[i]);
-                    Map<String, Object?> tweetObject =  json.decode(tweets[i]['data']) as Map<String, Object?>;
-                    Map<String, Object?> userObject = tweetObject['user'] as Map<String, Object?>;
-                    Imager.load(userObject['profile_image_url_https'] as String, (String path) {
-                        _tweets.add(
-                            Card(
-                                child: Row(
-                                    children: [
-                                        Image.file(File(path)),
-                                        Column(
-                                            children: <Widget>[
-                                                Row(
-                                                    children: [
-                                                        RichText(
-                                                            overflow: TextOverflow.ellipsis,
-                                                            text: TextSpan(
-                                                                children: <InlineSpan>[
-                                                                    TextSpan(text: userObject['name'] as String, style: const TextStyle(color: Colors.black)),
-                                                                    TextSpan(text: '@' + (userObject['screen_name'] as String), style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.black))
-                                                                ],
-                                                            )
-                                                        ),
-                                                        Text(Utility.createFuzzyDateTime(tweetObject['created_at'] as String))
-                                                    ]
-                                                ),
-                                                Text(tweetObject['full_text'] as String)
-                                            ]
-                                        )
-                                    ]
-                                )
-                            )
-                        );
-                    });
+                        break;
                 }
+            }
+            final String tweetJsonString = await ApiStatusesHomeTimeline().start(requestData);
+            final List<dynamic> tweetJsonObject = json.decode(tweetJsonString);
+            List<Map<String, Object?>> tweetDatas = [];
+            List<Map<String, Object?>> rDatas = [];
+            for (int i = 0; i < tweetJsonObject.length; ++i) {
+                Map<String, Object?> data = {};
+                data['tweet_id'] = tweetJsonObject[i]['id'];
+                data['user_id'] = tweetJsonObject[i]['user']['id'];
+                data['data'] = json.encode(tweetJsonObject[i]);
+                data['reply_tweet_id'] = tweetJsonObject[i]['in_reply_to_user_id'];
+                tweetDatas.add(data);
+
+                Map<String, Object?> rdata = {};
+                rdata['tweet_id'] = tweetJsonObject[i]['id'];
+                rdata['my'] = my;
+                rDatas.add(rdata);
+            }
+            await database.transaction((Transaction txn) async {
+                await DB.insert(txn, 't_tweets', tweetDatas);
+                await DB.insert(txn, 'r_home_tweets', rDatas);
             });
+        }
+    }
+
+    Future<void> _displayHomeTimeline() async
+    {
+        final SharedPreferences prefs = await SharedPreferences.getInstance();
+        final int my = prefs.getInt('my') ?? 0;
+
+        final Database database = await DB.getInstance();
+        final List<Map<String, dynamic>> tweets = await database.rawQuery(
+            '''
+            SELECT tt.*
+            FROM t_tweets tt
+            INNER JOIN r_home_tweets rht ON tt.tweet_id = rht.tweet_id
+            WHERE my = ?
+            ORDER BY tt.tweet_id DESC
+            ''', [my.toString()]);
+        setState(() {
+            for (int i = 0; i < tweets.length; ++i) {
+                Map<String, Object?> tweetObject =  json.decode(tweets[i]['data']) as Map<String, Object?>;
+                Map<String, Object?> userObject = tweetObject['user'] as Map<String, Object?>;
+                Imager.load(userObject['profile_image_url_https'] as String, (String path) {
+                    _tweets.add(
+                        Card(
+                            child: Row(
+                                children: [
+                                    Image.file(File(path)),
+                                    Column(
+                                        children: <Widget>[
+                                            Row(
+                                                children: [
+                                                    RichText(
+                                                        overflow: TextOverflow.ellipsis,
+                                                        text: TextSpan(
+                                                            children: <InlineSpan>[
+                                                                TextSpan(text: userObject['name'] as String, style: const TextStyle(color: Colors.black)),
+                                                                TextSpan(text: '@' + (userObject['screen_name'] as String), style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.black))
+                                                            ],
+                                                        )
+                                                    ),
+                                                    Text(Utility.createFuzzyDateTime(tweetObject['created_at'] as String))
+                                                ]
+                                            ),
+                                            Text(tweetObject['full_text'] as String)
+                                        ]
+                                    )
+                                ]
+                            )
+                        )
+                    );
+                });
+            }
         });
+    }
+
+    Future<void> _entry() async
+    {
+        final SharedPreferences prefs = await SharedPreferences.getInstance();
+        int my = prefs.getInt('my') ?? 0;
+
+        final Database database = await DB.getInstance();
+        final List<Map<String, Object?>> users = await database.rawQuery('SELECT oauth_token, oauth_token_secret FROM t_users WHERE my = ?', [my.toString()]);
+        if (users.isEmpty == true) {
+            final String query = await ApiRequestToken().start({});
+            final Map<String, String> params = Utility.splitQuery(query);
+            final dynamic callback = await Navigator.pushNamed(context, 'authentication', arguments: params);
+            if (callback != null) {
+                final String query2 = (callback as String).replaceAll('${ApiCommon.CALLBACK_URL}?', '');
+                final Map<String, String> params2 = Utility.splitQuery(query2);
+                // 認証拒否された場合は処理しない
+                // 拒否されたばあい「denied」が付与されるので否定
+                if (params2.containsKey('denied') == false) {
+                    params2['oauth_token_secret'] = params['oauth_token_secret']!;
+                    final String query3 = await ApiAccessToken().start(params2);
+                    final Map<String, String> params3 = Utility.splitQuery(query3);
+                    final Map<String, String> userData = {'oauth_token': params3['oauth_token']!, 'oauth_token_secret': params3['oauth_token_secret']!, 'user_id': params3['user_id']!};
+                    final String userJson = await ApiUsersShow().start(userData);
+                    ++my;
+                    await database.transaction((Transaction txn) async {
+                        await DB.insert(txn, 't_users', [{'user_id': params3['user_id'], 'oauth_token': params3['oauth_token'], 'oauth_token_secret': params3['oauth_token_secret'], 'my': my.toString(), 'data': userJson}]);
+                    });
+                    await prefs.setInt('my', my);
+                    await _getHomeTimeline();
+                }
+            }
+        }
+        _displayHomeTimeline();
     }
 
     @override
     void initState()
     {
+        _logger.v('[START]initState()');
         super.initState();
-
-        late Database database;
-        late SharedPreferences prefs;
-
-        SharedPreferences.getInstance()
-        .then((SharedPreferences p) {
-            prefs = p;
-            return DB.getInstance();
-        })
-        .then((Database db) {
-            int my = prefs.getInt('my') ?? 0;
-            database = db;
-            return db.rawQuery('SELECT oauth_token, oauth_token_secret FROM t_users WHERE my = ?', [my.toString()]);
-        })
-        .then((List<Map<String, Object?>> user) {
-            if (user.isEmpty == true) {
-                late Map<String, String> authData;
-                int my = prefs.getInt('my') ?? 0;
-
-                ApiRequestToken().start({})
-                .then((String query) {
-                    Map<String, String> params = Utility.splitQuery(query);
-
-                    return Navigator.pushNamed(
-                        context,
-                        'authentication',
-                        arguments: params
-                    )
-                    .then((dynamic callback) {
-                        // nullが帰ってくることがある
-                        if (callback != null) {
-                            String query2 = (callback as String).replaceAll('${ApiCommon.CALLBACK_URL}?', '');
-                            Map<String, String> params2 = Utility.splitQuery(query2);
-                            // 認証拒否された場合は処理しない
-                            // 拒否されたばあい「denied」が付与されるので否定
-                            if (params2.containsKey('denied') == false) {
-                                params2['oauth_token_secret'] = params['oauth_token_secret']!;
-                                _logger.e(params2);
-                                ApiAccessToken().start(params2)
-                                .then((String query3) {
-                                    Map<String, String> params3 = Utility.splitQuery(query3);
-                                    authData = params3;
-                                    Map<String, String> userData = {'oauth_token': params3['oauth_token']!, 'oauth_token_secret': params3['oauth_token_secret']!, 'user_id': params3['user_id']!};
-
-                                    return ApiUsersShow().start(userData);
-                                })
-                                .then((String json) {
-                                    return database.rawInsert(
-                                        'INSERT INTO t_users(user_id, oauth_token, oauth_token_secret, my, data) VALUES(?, ?, ?, ?, ?)',
-                                        [authData['user_id'], authData['oauth_token'], authData['oauth_token_secret'], (my + 1).toString(), json]
-                                    );
-                                })
-                                .then((int status) {
-                                    if (status != 0) {
-                                        prefs.setInt('my', my + 1)
-                                        .then((bool retult) {
-                                            if (retult == true) {
-                                                _getHomeTimeline()
-                                                .then((_) {
-                                                    _displayHomeTimeline();
-                                                });
-                                            }
-                                        });
-                                    }
-                                });
-                            }
-                        }
-                    });
-                });
-            }
-            else {
-                _displayHomeTimeline();
-            }
-        });
+        _entry();
+        _logger.v('[END]initState()');
     }
 
     @override

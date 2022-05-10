@@ -58,17 +58,17 @@ class DB
                 );
                 db.execute(
                     '''
-                        CREATE UNIQUE INDEX t_time_lines_unique_tweet_id ON t_time_lines (tweet_id)
+                        CREATE UNIQUE INDEX t_tweets_unique_tweet_id ON t_tweets (tweet_id)
                     '''
                 );
                 db.execute(
                     '''
-                        CREATE INDEX t_time_lines_index_reply_tweet_id ON t_time_lines (reply_tweet_id)
+                        CREATE INDEX t_tweets_index_reply_tweet_id ON t_tweets (reply_tweet_id)
                     '''
                 );
                 db.execute(
                     '''
-                        CREATE INDEX t_time_lines_index_user_id ON t_time_lines (user_id)
+                        CREATE INDEX t_tweets_index_user_id ON t_tweets (user_id)
                     '''
                 );
                 db.execute(
