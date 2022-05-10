@@ -159,39 +159,6 @@ class _HomeTimelineState extends State<HomeTimeline>
         });
     }
 
-    Widget _memuItem(int id, int myUserId, String jsonString)
-    {
-        Map<String, Object?> tweetObject = json.decode(jsonString);
-        Map<String, Object?> userObject = tweetObject['user'] as Map<String, Object?>;
-        _logger.e(tweetObject);
-        return Card(
-            child: Row(
-                children: <Widget>[
-                    Image.file(File(tweetObject['profile_image_path'] as String)),
-                    Column(
-                        children: <Widget>[
-                            Row(
-                                children: <Widget>[
-                                    RichText(
-                                        overflow: TextOverflow.ellipsis,
-                                        text: TextSpan(
-                                            children: <InlineSpan>[
-                                                TextSpan(text: userObject['name'] as String, style: const TextStyle(color: Colors.black)),
-                                                TextSpan(text: '@' + (userObject['screen_name'] as String), style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.black))
-                                            ],
-                                        )
-                                    ),
-                                    Text(tweetObject['created_at'] as String)
-                                ]
-                            ),
-                            Text(tweetObject['full_text'] as String)
-                        ]
-                    )
-                ]
-            )
-        );
-    }
-
     @override
     void initState()
     {
@@ -275,22 +242,35 @@ class _HomeTimelineState extends State<HomeTimeline>
     @override
     Widget build(BuildContext context)
     {
+        _logger.v('build(${context})');
+
          return Scaffold(
-             appBar: const EmptyAppBar(),
-             body: ListView(
-                 children: _tweets,
-             ),
-             floatingActionButton: FloatingActionButton(
-                 onPressed: () async {
+            appBar: const EmptyAppBar(),
+            body: NotificationListener<ScrollNotification> (
+                child: ListView.builder(
+                    itemCount: _tweets.length,
+                    itemBuilder: (context, index) {
+                        return _tweets[index];
+                    },
+                ),
+                onNotification: (ScrollNotification notification) {
+                    if (notification is OverscrollNotification) {
+                        _logger.e(notification);
+                    }
+                    return true;
+                }
+            ),
+            floatingActionButton: FloatingActionButton(
+                onPressed: () async {
                     Database database = await DB.getInstance();
                     await database.rawDelete('DELETE FROM t_users');
                     await database.rawDelete('DELETE FROM t_time_lines');
                     await database.rawDelete('DELETE FROM r_home_tweets');
                     await database.rawDelete('DELETE FROM t_tweet_actions');
                     _logger.d('remove... done');
-                 },
-                 child: const Icon(Icons.add)
-             )
-         );
+                },
+                child: const Icon(Icons.add)
+            )
+        );
     }
 }
