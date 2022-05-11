@@ -118,15 +118,16 @@ class _HomeTimelineState extends State<HomeTimeline>
                                                         overflow: TextOverflow.ellipsis,
                                                         text: TextSpan(
                                                             children: <InlineSpan>[
-                                                                TextSpan(text: userObject['name'] as String, style: const TextStyle(color: Colors.black)),
+                                                                TextSpan(text: userObject['name'] as String, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
                                                                 TextSpan(text: '@' + (userObject['screen_name'] as String), style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.black))
                                                             ],
                                                         )
                                                     ),
+                                                    const Text('･'),
                                                     Text(Utility.createFuzzyDateTime(tweetObject['created_at'] as String))
                                                 ]
                                             ),
-                                            Text(tweetObject['full_text'] as String)
+                                            Text(tweetObject['full_text'] as String),
                                         ]
                                     )
                                 ]
@@ -190,6 +191,7 @@ class _HomeTimelineState extends State<HomeTimeline>
             appBar: const EmptyAppBar(),
             body: NotificationListener<ScrollNotification> (
                 child: ListView.builder(
+                    shrinkWrap: true,
                     itemCount: _tweets.length,
                     itemBuilder: (context, index) {
                         return _tweets[index];
