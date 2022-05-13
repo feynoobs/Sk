@@ -90,6 +90,7 @@ class _HomeTimelineState extends State<HomeTimeline>
     {
         final SharedPreferences prefs = await SharedPreferences.getInstance();
         final int my = prefs.getInt('my') ?? 0;
+        final Imager imager = Imager();
 
         final Database database = await DB.getInstance();
         final List<Map<String, dynamic>> tweets = await database.rawQuery(
@@ -100,23 +101,34 @@ class _HomeTimelineState extends State<HomeTimeline>
             WHERE my = ?
             ORDER BY tt.tweet_id DESC
             ''', [my.toString()]);
+        // 先に画像を保存しておく
+        await imager.initialization();
+        for (int i = 0; i < tweets.length; ++i) {
+            final Map<String, Object?> tweetObject =  json.decode(tweets[i]['data']) as Map<String, Object?>;
+            final Map<String, Object?> userObject = tweetObject['user'] as Map<String, Object?>;
+            await imager.saveImage(userObject['profile_image_url_https'] as String);
+        }
+
         setState(() {
             for (int i = 0; i < tweets.length; ++i) {
-                Map<String, Object?> tweetObject =  json.decode(tweets[i]['data']) as Map<String, Object?>;
-                Map<String, Object?> userObject = tweetObject['user'] as Map<String, Object?>;
-                Imager.load(userObject['profile_image_url_https'] as String, (String path) {
+                final Map<String, Object?> tweetObject =  json.decode(tweets[i]['data']) as Map<String, Object?>;
+                final Map<String, Object?> userObject = tweetObject['user'] as Map<String, Object?>;
+                final String? path = imager.loadImage(userObject['profile_image_url_https'] as String);
+                if (path != null) {
                     _tweets.add(
                         Card(
                             child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                     Image.file(File(path)),
                                     Flexible(
                                         child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
                                             children: <Widget>[
                                                 Row(
                                                     children: [
                                                         Container(
-                                                            constraints: BoxConstraints(minWidth: 0, maxWidth: MediaQuery.of(context).size.width * 0.75),
+                                                            constraints: BoxConstraints(minWidth: 0, maxWidth: MediaQuery.of(context).size.width * 0.7),
                                                             child: RichText(
                                                                 overflow: TextOverflow.ellipsis,
                                                                 text: TextSpan(
@@ -139,7 +151,7 @@ class _HomeTimelineState extends State<HomeTimeline>
                             )
                         )
                     );
-                });
+                }
             }
         });
     }

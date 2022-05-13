@@ -6,82 +6,50 @@ import 'package:logger/logger.dart';
 
 class Imager
 {
-    static bool _running = false;
-    static final Map<String, List<Function(String)?>> _requests = {};
-    static final Logger _logger = Logger();
+    final Logger _logger = Logger();
+    Directory? _cacheDirectory;
 
-    static Map<String, Object> _getPathObject(Uri uri, Directory asbDir)
+    Future<void> initialization() async
     {
-        final path = '/${uri.host}${uri.path.substring(0, uri.path.lastIndexOf('/') + 1)}';
-        final file = uri.path.substring(uri.path.lastIndexOf('/') + 1);
-        final Directory dirObject = Directory(asbDir.path + path);
-        final File fileObject = File(dirObject.path + file);
-
-        return {'directory': dirObject, 'file': fileObject};
+        _logger.v('initialization()');
+        _cacheDirectory = await getTemporaryDirectory();
     }
 
-    static void _runner(Directory dir)
-    {
-        _running = true;
-        _requests.forEach((String url, List<Function(String)?> callbacks) {
-            final Uri uri = Uri.parse(url);
-            final Map<String, Object> pathObject = _getPathObject(uri, dir);
 
-            (pathObject['directory'] as Directory).create(recursive: true)
-            .then((Directory _) {
-                return http.get(uri);
-            })
-            .then((http.Response response) {
-                (pathObject['file'] as File).writeAsBytesSync(response.bodyBytes);
-                callbacks.forEach((Function(String)? f) {
-                    if (f != null) {
-                        f((pathObject['file'] as File).path);
-                    }
-                });
-            });
-        });
-        _running = false;
+    Future<void> saveImage(final String url) async
+    {
+        _logger.v('saveImage(${url})');
+        if (_cacheDirectory != null) {
+            final Uri uri = Uri.parse(url);
+            final path = '/${uri.host}${uri.path.substring(0, uri.path.lastIndexOf('/') + 1)}';
+            final file = uri.path.substring(uri.path.lastIndexOf('/') + 1);
+            final Directory dirObject = Directory(_cacheDirectory!.path + path);
+            final File fileObject = File(dirObject.path + file);
+
+            if (fileObject.existsSync() != true) {
+                await dirObject.create(recursive: true);
+                final http.Response response = await http.get(uri);
+                fileObject.writeAsBytesSync(response.bodyBytes);
+            }
+        }
     }
 
-    static void save(String url)
+    String? loadImage(final String url)
     {
-        _logger.v('save(${url})');
-        getTemporaryDirectory()
-        .then((Directory dir) {
+        _logger.v('loadImage(${url})');
+        String? ret;
+        if (_cacheDirectory != null) {
             final Uri uri = Uri.parse(url);
-            Map<String, Object> pathObject = _getPathObject(uri, dir);
-            if ((pathObject['file'] as File).existsSync() == false) {
-                if (_requests.containsKey(url) == false) {
-                    _requests[url] = <Function(String)?>[null];
-                }
-                if (_running == false) {
-                    _runner(dir);
-                }
-            }
-        });
-    }
+            final path = '/${uri.host}${uri.path.substring(0, uri.path.lastIndexOf('/') + 1)}';
+            final file = uri.path.substring(uri.path.lastIndexOf('/') + 1);
+            final Directory dirObject = Directory(_cacheDirectory!.path + path);
+            final File fileObject = File(dirObject.path + file);
 
-    static void load(String url, Function(String) callback)
-    {
-        _logger.v('load(${url}, ${callback})');
-        getTemporaryDirectory()
-        .then((Directory dir) {
-            final Uri uri = Uri.parse(url);
-            Map<String, Object> pathObject = _getPathObject(uri, dir);
-            if ((pathObject['file'] as File).existsSync() == true) {
-                callback((pathObject['file'] as File).path);
+            if (fileObject.existsSync() == true) {
+                ret = fileObject.path;
             }
-            else {
-                if (_requests.containsKey(url) == true) {
-                    _requests[url]?.add(callback);
-                }
-                else {
-                    _requests[url] = <Function(String)>[callback];
-                }
-                if (_running == false) {
-                    _runner(dir);
-                }
-            }
-        });
+        }
+
+        return ret;
     }
 }

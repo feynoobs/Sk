@@ -1,10 +1,14 @@
 import 'package:intl/intl.dart';
+import 'package:logger/logger.dart';
 
 class Utility
 {
+    static final Logger _logger = Logger();
+
     static Map<String, String> splitQuery(String query)
     {
-        Map<String, String> ret = {};
+        _logger.v('splitQuery(${query})');
+        final Map<String, String> ret = {};
 
         query.split('&').forEach((one) {
             List<String> chop = one.split('=');
@@ -16,17 +20,19 @@ class Utility
 
     static String now()
     {
+        _logger.v('now()');
         return DateTime.now().toString();
     }
 
     static String createFuzzyDateTime(String dateTime)
     {
-        late String ret;
-        int now = (DateTime.now().millisecondsSinceEpoch / 1000).floor();
+        _logger.v('createFuzzyDateTime(${dateTime})');
+        late final String ret;
+        final int now = (DateTime.now().millisecondsSinceEpoch / 1000).floor();
 
-        DateTime input = DateFormat('EEE MMM dd HH:mm:ss yyyy').parse(dateTime.replaceAll('+0000 ', ''));
-        int postTime =  (input.millisecondsSinceEpoch / 1000).floor();
-        int timeDiff = now - postTime;
+        final DateTime input = DateFormat('EEE MMM dd HH:mm:ss yyyy').parse(dateTime.replaceAll('+0000 ', ''));
+        final int postTime =  (input.millisecondsSinceEpoch / 1000).floor();
+        final int timeDiff = now - postTime;
 
         if (timeDiff < 60) {
             ret = '${timeDiff}秒';
