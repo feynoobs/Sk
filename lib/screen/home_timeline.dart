@@ -127,7 +127,7 @@ class _HomeTimelineState extends State<HomeTimeline>
                                                     Text(Utility.createFuzzyDateTime(tweetObject['created_at'] as String))
                                                 ]
                                             ),
-                                            Text(tweetObject['full_text'] as String),
+                                            Text(tweetObject['full_text'] as String, overflow: TextOverflow.clip),
                                         ]
                                     )
                                 ]
