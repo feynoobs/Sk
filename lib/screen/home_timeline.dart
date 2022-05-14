@@ -120,7 +120,9 @@ class _HomeTimelineState extends State<HomeTimeline>
                             child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                    Image.file(File(path)),
+                                    ClipOval(
+                                        child: Image.file(File(path))
+                                    ),
                                     Flexible(
                                         child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
