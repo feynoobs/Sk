@@ -116,7 +116,16 @@ class _HomeTimelineState extends State<HomeTimeline>
                 final String? path = imager.loadImage(userObject['profile_image_url_https'] as String);
                 if (path != null) {
                     _tweets.add(
-                        Card(
+                        Container(
+                            padding: const EdgeInsets.only(top: 2, bottom: 2),
+                            decoration: const BoxDecoration(
+                                border: Border(
+                                    bottom: BorderSide(
+                                        color: Colors.grey,
+                                        width: 0.2
+                                    ),
+                                ),
+                            ),
                             child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -124,29 +133,32 @@ class _HomeTimelineState extends State<HomeTimeline>
                                         child: Image.file(File(path))
                                     ),
                                     Flexible(
-                                        child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: <Widget>[
-                                                Row(
-                                                    children: [
-                                                        Container(
-                                                            constraints: BoxConstraints(minWidth: 0, maxWidth: MediaQuery.of(context).size.width * 0.7),
-                                                            child: RichText(
-                                                                overflow: TextOverflow.ellipsis,
-                                                                text: TextSpan(
-                                                                    children: <InlineSpan>[
-                                                                        TextSpan(text: userObject['name'] as String, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
-                                                                        TextSpan(text: '@' + (userObject['screen_name'] as String), style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.black))
-                                                                    ],
+                                        child: Container(
+                                            margin: const EdgeInsets.only(left: 4),
+                                            child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: <Widget>[
+                                                    Row(
+                                                        children: [
+                                                            Container(
+                                                                constraints: BoxConstraints(minWidth: 0, maxWidth: MediaQuery.of(context).size.width * 0.7),
+                                                                child: RichText(
+                                                                    overflow: TextOverflow.ellipsis,
+                                                                    text: TextSpan(
+                                                                        children: <InlineSpan>[
+                                                                            TextSpan(text: userObject['name'] as String, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+                                                                            TextSpan(text: '@' + (userObject['screen_name'] as String), style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.black))
+                                                                        ],
+                                                                    )
                                                                 )
-                                                            )
-                                                        ),
-                                                        const Text('･'),
-                                                        Text(Utility.createFuzzyDateTime(tweetObject['created_at'] as String))
-                                                    ]
-                                                ),
-                                                Text(tweetObject['full_text'] as String, overflow: TextOverflow.clip),
-                                            ]
+                                                            ),
+                                                            const Text('･'),
+                                                            Text(Utility.createFuzzyDateTime(tweetObject['created_at'] as String))
+                                                        ]
+                                                    ),
+                                                    Text(tweetObject['full_text'] as String, overflow: TextOverflow.clip),
+                                                ]
+                                            )
                                         )
                                     )
                                 ]
