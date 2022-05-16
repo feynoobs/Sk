@@ -86,33 +86,43 @@ class _HomeTimelineState extends State<HomeTimeline>
         }
     }
 
-    void _favBox(final Map<String, Object?> tweetObject) async
+    Row _favBox(final Map<String, Object?> tweetObject)
     {
-        final SharedPreferences prefs = await SharedPreferences.getInstance();
-        final int my = prefs.getInt('my') ?? 0;
-
-        final Database database = await DB.getInstance();
-        final List<Map<String, dynamic>> faved = await database.rawQuery(
-            '''
-            SELECT id
-            FROM t_tweet_actions
-            WHERE my = ? AND tweet_id = ? AND type = ?
-            ''', [my.toString(), tweetObject['id'], 1.toString()]);
-
-        Container c = Container(
-            width: 16,
-            height: 16,
-            decoration: const BoxDecoration(
-                image: DecorationImage(
-                    image: AssetImage('assets/images/tweet_favorite.png'),
-                    fit: BoxFit.scaleDown
-                )
-            )
+        Row r = Row(
+            children: <Widget>[
+                Container(
+                    width: 16,
+                    height: 16,
+                    decoration: const BoxDecoration(
+                        image: DecorationImage(
+                            image: AssetImage('assets/images/tweet_favorite.png'),
+                            fit: BoxFit.scaleDown
+                        )
+                    )
+                ),
+                Text(Utility.shrinkPosts(tweetObject['retweet_count'] as int))
+            ]
         );
 
-        if (faved.length != 0) {
-
+        if (tweetObject['favorited'] == true) {
+            r = Row(
+                children: <Widget>[
+                    Container(
+                        width: 16,
+                        height: 16,
+                        decoration: const BoxDecoration(
+                            image: DecorationImage(
+                                image: AssetImage('assets/images/tweet_favorited.png'),
+                                fit: BoxFit.scaleDown
+                            )
+                        )
+                    ),
+                    Text(Utility.shrinkPosts(tweetObject['retweet_count'] as int))
+                ]
+            );
         }
+
+        return r;
     }
 
     Future<void> _displayHomeTimeline() async
@@ -231,21 +241,7 @@ class _HomeTimelineState extends State<HomeTimeline>
                                                                 ]
                                                             ),
                                                             const Spacer(),
-                                                            Row(
-                                                                children: <Widget>[
-                                                                    Container(
-                                                                        width: 16,
-                                                                        height: 16,
-                                                                        decoration: const BoxDecoration(
-                                                                            image: DecorationImage(
-                                                                                image: AssetImage('assets/images/tweet_favorite.png'),
-                                                                                fit: BoxFit.scaleDown
-                                                                            )
-                                                                        )
-                                                                    ),
-                                                                    Text(''),
-                                                                ]
-                                                            ),
+                                                            _favBox(tweetObject),
                                                             const Spacer(),
                                                             Container(
                                                                 width: 16,
