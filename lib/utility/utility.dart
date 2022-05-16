@@ -18,6 +18,18 @@ class Utility
         return ret;
     }
 
+    static String shrinkPosts(int posts)
+    {
+        _logger.v('shrinkPosts(${posts})');
+        String text = '';
+        if (posts > 0) {
+            NumberFormat formatter = NumberFormat('#,###.0');
+            text = formatter.format(posts);
+        }
+
+        return text;
+    }
+
     static String now()
     {
         _logger.v('now()');

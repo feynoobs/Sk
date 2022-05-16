@@ -97,7 +97,7 @@ class DB
                 );
                 db.execute(
                     '''
-                        CREATE UNIQUE INDEX t_tweet_actions_unique_my_tweet_id ON t_tweet_actions (my, tweet_id)
+                        CREATE UNIQUE INDEX t_tweet_actions_unique_my_tweet_id_type ON t_tweet_actions (my, tweet_id, type)
                     '''
                 );
             })

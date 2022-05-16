@@ -86,6 +86,35 @@ class _HomeTimelineState extends State<HomeTimeline>
         }
     }
 
+    void _favBox(final Map<String, Object?> tweetObject) async
+    {
+        final SharedPreferences prefs = await SharedPreferences.getInstance();
+        final int my = prefs.getInt('my') ?? 0;
+
+        final Database database = await DB.getInstance();
+        final List<Map<String, dynamic>> faved = await database.rawQuery(
+            '''
+            SELECT id
+            FROM t_tweet_actions
+            WHERE my = ? AND tweet_id = ? AND type = ?
+            ''', [my.toString(), tweetObject['id'], 1.toString()]);
+
+        Container c = Container(
+            width: 16,
+            height: 16,
+            decoration: const BoxDecoration(
+                image: DecorationImage(
+                    image: AssetImage('assets/images/tweet_favorite.png'),
+                    fit: BoxFit.scaleDown
+                )
+            )
+        );
+
+        if (faved.length != 0) {
+
+        }
+    }
+
     Future<void> _displayHomeTimeline() async
     {
         final SharedPreferences prefs = await SharedPreferences.getInstance();
