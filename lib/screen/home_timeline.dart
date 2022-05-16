@@ -29,7 +29,7 @@ class _HomeTimelineState extends State<HomeTimeline>
     final Logger _logger = Logger();
     final List<Widget> _tweets = [];
 
-    Future<void> _getHomeTimeline([String? type]) async
+    Future<void> _getHomeTimeline([final String? type]) async
     {
         final SharedPreferences prefs = await SharedPreferences.getInstance();
         final int my = prefs.getInt('my') ?? 0;
@@ -128,7 +128,7 @@ class _HomeTimelineState extends State<HomeTimeline>
                             ),
                             child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
+                                children: <Widget>[
                                     ClipOval(
                                         child: Image.file(File(path))
                                     ),
@@ -139,7 +139,7 @@ class _HomeTimelineState extends State<HomeTimeline>
                                                 crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: <Widget>[
                                                     Row(
-                                                        children: [
+                                                        children: <Widget>[
                                                             Container(
                                                                 constraints: BoxConstraints(minWidth: 0, maxWidth: MediaQuery.of(context).size.width * 0.7),
                                                                 child: RichText(
@@ -153,10 +153,84 @@ class _HomeTimelineState extends State<HomeTimeline>
                                                                 )
                                                             ),
                                                             const Text('･'),
-                                                            Text(Utility.createFuzzyDateTime(tweetObject['created_at'] as String))
+                                                            Text(Utility.createFuzzyDateTime(tweetObject['created_at'] as String)),
+                                                            const Spacer(),
+                                                            Container(
+                                                                width: 16,
+                                                                height: 16,
+                                                                decoration: const BoxDecoration(
+                                                                    image: DecorationImage(
+                                                                        image: AssetImage('assets/images/other.png'),
+                                                                        fit: BoxFit.scaleDown
+                                                                    )
+                                                                )
+                                                            )
                                                         ]
                                                     ),
                                                     Text(tweetObject['full_text'] as String, overflow: TextOverflow.clip),
+                                                    Row(
+                                                        children: <Widget>[
+                                                            Row(
+                                                                children: <Widget>[
+                                                                    Container(
+                                                                        width: 16,
+                                                                        height: 16,
+                                                                        decoration: const BoxDecoration(
+                                                                            image: DecorationImage(
+                                                                                image: AssetImage('assets/images/tweet_reply.png'),
+                                                                                fit: BoxFit.scaleDown
+                                                                            )
+                                                                        )
+                                                                    ),
+                                                                    Text(''),
+                                                                ]
+                                                            ),
+                                                            const Spacer(),
+                                                            Row(
+                                                                children: <Widget>[
+                                                                    Container(
+                                                                        width: 16,
+                                                                        height: 16,
+                                                                        decoration: const BoxDecoration(
+                                                                            image: DecorationImage(
+                                                                                image: AssetImage('assets/images/tweet_retweet.png'),
+                                                                                fit: BoxFit.scaleDown
+                                                                            )
+                                                                        )
+                                                                    ),
+                                                                    Text(''),
+                                                                ]
+                                                            ),
+                                                            const Spacer(),
+                                                            Row(
+                                                                children: <Widget>[
+                                                                    Container(
+                                                                        width: 16,
+                                                                        height: 16,
+                                                                        decoration: const BoxDecoration(
+                                                                            image: DecorationImage(
+                                                                                image: AssetImage('assets/images/tweet_favorite.png'),
+                                                                                fit: BoxFit.scaleDown
+                                                                            )
+                                                                        )
+                                                                    ),
+                                                                    Text(''),
+                                                                ]
+                                                            ),
+                                                            const Spacer(),
+                                                            Container(
+                                                                width: 16,
+                                                                height: 16,
+                                                                decoration: const BoxDecoration(
+                                                                    image: DecorationImage(
+                                                                        image: AssetImage('assets/images/tweet_share.png'),
+                                                                        fit: BoxFit.scaleDown
+                                                                    )
+                                                                )
+                                                            ),
+                                                            const Spacer(),
+                                                        ]
+                                                    )
                                                 ]
                                             )
                                         )
@@ -207,10 +281,9 @@ class _HomeTimelineState extends State<HomeTimeline>
     @override
     void initState()
     {
-        _logger.v('[START]initState()');
+        _logger.v('initState()');
         super.initState();
         _entry();
-        _logger.v('[END]initState()');
     }
 
     @override
