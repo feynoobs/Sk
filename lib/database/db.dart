@@ -12,6 +12,7 @@ class DB
 
     static Future<Database> getInstance() async
     {
+        _logger.v('getInstance()');
         _instance ??= openDatabase(
             join(await getDatabasesPath(), 'sk.db'),
             version: 1,
@@ -83,21 +84,6 @@ class DB
                 db.execute(
                     '''
                         CREATE UNIQUE INDEX r_home_tweets_unique_my_tweet_id ON r_home_tweets (my, tweet_id)
-                    '''
-                );
-                db.execute(
-                    '''
-                        CREATE TABLE t_tweet_actions(
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            type INTEGER NOT NULL DEFAULT 1,        -- 1:いいね/2:RT
-                            tweet_id INTEGER NOT NULL,              -- ツィートID
-                            my INTEGER NOT NULL                     -- シーケンシャルなユーザー番号
-                        )
-                    '''
-                );
-                db.execute(
-                    '''
-                        CREATE UNIQUE INDEX t_tweet_actions_unique_my_tweet_id_type ON t_tweet_actions (my, tweet_id, type)
                     '''
                 );
             })
