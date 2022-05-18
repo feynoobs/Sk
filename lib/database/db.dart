@@ -94,6 +94,7 @@ class DB
 
     static Future<int> insert(Transaction txn, String table, List<Map<String, Object?>> datas)
     {
+        _logger.v('insert(${txn}, ${table}, ${datas})');
         Completer<int> computer = Completer<int>();
         List<String?> binding = [];
 
@@ -118,6 +119,7 @@ class DB
             query += '),';
         });
         query = query.substring(0, query.length - 1);
+        _logger.d(query);
 
         txn.rawInsert(query, binding)
         .then((int status) {

@@ -28,66 +28,74 @@ class _HomeTimelineState extends State<HomeTimeline>
 {
     final Logger _logger = Logger();
     final List<Widget> _tweets = [];
+    bool _locked = false;
 
     Future<void> _getHomeTimeline([final String? type]) async
     {
-        final SharedPreferences prefs = await SharedPreferences.getInstance();
-        final int my = prefs.getInt('my') ?? 0;
+        _logger.v('_favBox(${type})');
 
-        final Database database = await DB.getInstance();
-        final List<Map<String, Object?>> user = await database.rawQuery('SELECT oauth_token, oauth_token_secret FROM t_users WHERE my = ?', [my.toString()]);
-        if (user.isNotEmpty == true) {
-            Map<String, String> requestData = {
-                'oauth_token': user[0]['oauth_token'] as String,
-                'oauth_token_secret': user[0]['oauth_token_secret'] as String,
-                'count': 10.toString(),
-                'exclude_replies': false.toString(),
-                'contributor_details': false.toString(),
-                'include_rts': true.toString(),
-                'tweet_mode': 'extended'
-            };
-            if (type != null) {
-                switch (type) {
-                    case 'next':
-                        final List<Map<String, Object?>>  tweets = await database.rawQuery('SELECT MAX(tweet_id) as max_id FROM r_home_tweets WHERE my = ?', [my.toString()]);
-                        if (tweets[0]['max_id'] != null) {
-                            requestData['since_id'] = tweets[0]['max_id'].toString();
-                        }
-                        break;
-                    case 'prev':
-                        final List<Map<String, Object?>>  tweets = await database.rawQuery('SELECT MIN(tweet_id) as min_id FROM r_home_tweets WHERE my = ?', [my.toString()]);
-                        if (tweets[0]['min_id'] != null) {
-                            requestData['max_id'] = ((tweets[0]['min_id'] as int) - 1).toString();
-                        }
-                        break;
+        if (_locked == false) {
+            _locked = true;
+            final SharedPreferences prefs = await SharedPreferences.getInstance();
+            final int my = prefs.getInt('my') ?? 0;
+
+            final Database database = await DB.getInstance();
+            final List<Map<String, Object?>> user = await database.rawQuery('SELECT oauth_token, oauth_token_secret FROM t_users WHERE my = ?', [my.toString()]);
+            if (user.isNotEmpty == true) {
+                Map<String, String> requestData = {
+                    'oauth_token': user[0]['oauth_token'] as String,
+                    'oauth_token_secret': user[0]['oauth_token_secret'] as String,
+                    'count': 10.toString(),
+                    'exclude_replies': false.toString(),
+                    'contributor_details': false.toString(),
+                    'include_rts': true.toString(),
+                    'tweet_mode': 'extended'
+                };
+                if (type != null) {
+                    switch (type) {
+                        case 'next':
+                            final List<Map<String, Object?>>  tweets = await database.rawQuery('SELECT MAX(tweet_id) as max_id FROM r_home_tweets WHERE my = ?', [my.toString()]);
+                            if (tweets[0]['max_id'] != null) {
+                                requestData['since_id'] = tweets[0]['max_id'].toString();
+                            }
+                            break;
+                        case 'prev':
+                            final List<Map<String, Object?>>  tweets = await database.rawQuery('SELECT MIN(tweet_id) as min_id FROM r_home_tweets WHERE my = ?', [my.toString()]);
+                            if (tweets[0]['min_id'] != null) {
+                                requestData['max_id'] = ((tweets[0]['min_id'] as int) - 1).toString();
+                            }
+                            break;
+                    }
                 }
-            }
-            final String tweetJsonString = await ApiStatusesHomeTimeline().start(requestData);
-            final List<dynamic> tweetJsonObject = json.decode(tweetJsonString);
-            List<Map<String, Object?>> tweetDatas = [];
-            List<Map<String, Object?>> rDatas = [];
-            for (int i = 0; i < tweetJsonObject.length; ++i) {
-                Map<String, Object?> data = {};
-                data['tweet_id'] = tweetJsonObject[i]['id'];
-                data['user_id'] = tweetJsonObject[i]['user']['id'];
-                data['data'] = json.encode(tweetJsonObject[i]);
-                data['reply_tweet_id'] = tweetJsonObject[i]['in_reply_to_user_id'];
-                tweetDatas.add(data);
+                final String tweetJsonString = await ApiStatusesHomeTimeline().start(requestData);
+                final List<dynamic> tweetJsonObject = json.decode(tweetJsonString);
+                List<Map<String, Object?>> tweetDatas = [];
+                List<Map<String, Object?>> rDatas = [];
+                for (int i = 0; i < tweetJsonObject.length; ++i) {
+                    Map<String, Object?> data = {};
+                    data['tweet_id'] = tweetJsonObject[i]['id'];
+                    data['user_id'] = tweetJsonObject[i]['user']['id'];
+                    data['data'] = json.encode(tweetJsonObject[i]);
+                    data['reply_tweet_id'] = tweetJsonObject[i]['in_reply_to_user_id'];
+                    tweetDatas.add(data);
 
-                Map<String, Object?> rdata = {};
-                rdata['tweet_id'] = tweetJsonObject[i]['id'];
-                rdata['my'] = my;
-                rDatas.add(rdata);
+                    Map<String, Object?> rdata = {};
+                    rdata['tweet_id'] = tweetJsonObject[i]['id'];
+                    rdata['my'] = my;
+                    rDatas.add(rdata);
+                }
+                await database.transaction((Transaction txn) async {
+                    await DB.insert(txn, 't_tweets', tweetDatas);
+                    await DB.insert(txn, 'r_home_tweets', rDatas);
+                });
             }
-            await database.transaction((Transaction txn) async {
-                await DB.insert(txn, 't_tweets', tweetDatas);
-                await DB.insert(txn, 'r_home_tweets', rDatas);
-            });
+            _locked = false;
         }
     }
 
     Row _favBox(final Map<String, Object?> tweetObject)
     {
+        _logger.v('_favBox(${tweetObject})');
         Row r = Row(
             children: <Widget>[
                 Container(
@@ -125,8 +133,51 @@ class _HomeTimelineState extends State<HomeTimeline>
         return r;
     }
 
+    Row _rtBox(final Map<String, Object?> tweetObject)
+    {
+        _logger.v('_rtBox(${tweetObject})');
+        Row r = Row(
+            children: <Widget>[
+                Container(
+                    width: 16,
+                    height: 16,
+                    decoration: const BoxDecoration(
+                        image: DecorationImage(
+                            image: AssetImage('assets/images/tweet_retweet.png'),
+                            fit: BoxFit.scaleDown
+                        )
+                    )
+                ),
+                Text(Utility.shrinkPosts(tweetObject['retweet_count'] as int))
+            ]
+        );
+
+        if (tweetObject['retweeted'] == true) {
+            r = Row(
+                children: <Widget>[
+                    Container(
+                        width: 16,
+                        height: 16,
+                        decoration: const BoxDecoration(
+                            image: DecorationImage(
+                                image: AssetImage('assets/images/tweet_retweeted.png'),
+                                fit: BoxFit.scaleDown
+                            )
+                        )
+                    ),
+                    Text(Utility.shrinkPosts(tweetObject['retweet_count'] as int))
+                ]
+            );
+        }
+
+        return r;
+    }
+
+
     Future<void> _displayHomeTimeline() async
     {
+        _logger.v('_displayHomeTimeline()');
+
         final SharedPreferences prefs = await SharedPreferences.getInstance();
         final int my = prefs.getInt('my') ?? 0;
         final Imager imager = Imager();
@@ -151,6 +202,7 @@ class _HomeTimelineState extends State<HomeTimeline>
         setState(() {
             for (int i = 0; i < tweets.length; ++i) {
                 final Map<String, Object?> tweetObject =  json.decode(tweets[i]['data']) as Map<String, Object?>;
+                _logger.e(tweetObject);
                 final Map<String, Object?> userObject = tweetObject['user'] as Map<String, Object?>;
                 final String? path = imager.loadImage(userObject['profile_image_url_https'] as String);
                 if (path != null) {
@@ -180,7 +232,7 @@ class _HomeTimelineState extends State<HomeTimeline>
                                                     Row(
                                                         children: <Widget>[
                                                             Container(
-                                                                constraints: BoxConstraints(minWidth: 0, maxWidth: MediaQuery.of(context).size.width * 0.7),
+                                                                constraints: BoxConstraints(minWidth: 0, maxWidth: MediaQuery.of(context).size.width * 0.6),
                                                                 child: RichText(
                                                                     overflow: TextOverflow.ellipsis,
                                                                     text: TextSpan(
@@ -225,21 +277,7 @@ class _HomeTimelineState extends State<HomeTimeline>
                                                                 ]
                                                             ),
                                                             const Spacer(),
-                                                            Row(
-                                                                children: <Widget>[
-                                                                    Container(
-                                                                        width: 16,
-                                                                        height: 16,
-                                                                        decoration: const BoxDecoration(
-                                                                            image: DecorationImage(
-                                                                                image: AssetImage('assets/images/tweet_retweet.png'),
-                                                                                fit: BoxFit.scaleDown
-                                                                            )
-                                                                        )
-                                                                    ),
-                                                                    Text(''),
-                                                                ]
-                                                            ),
+                                                            _rtBox(tweetObject),
                                                             const Spacer(),
                                                             _favBox(tweetObject),
                                                             const Spacer(),
@@ -328,7 +366,12 @@ class _HomeTimelineState extends State<HomeTimeline>
                 ),
                 onNotification: (ScrollNotification notification) {
                     if (notification is OverscrollNotification) {
-                        _logger.e(notification);
+                        if (notification.overscroll >= 0.0) {
+                            _getHomeTimeline('prev');
+                        }
+                        else {
+                            _getHomeTimeline('next');
+                        }
                     }
                     return true;
                 }

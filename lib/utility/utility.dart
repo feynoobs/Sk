@@ -23,7 +23,7 @@ class Utility
         _logger.v('shrinkPosts(${posts})');
         String text = '';
         if (posts > 0) {
-            NumberFormat formatter = NumberFormat('#,###.0');
+            NumberFormat formatter = NumberFormat('#,###');
             text = formatter.format(posts);
         }
 
@@ -62,10 +62,10 @@ class Utility
             ret = '${day}日';
         }
         else if (timeDiff < 31536000) {
-            ret = DateFormat('MM月dd年').format(input);
+            ret = DateFormat('MM月dd日').format(input);
         }
         else {
-            ret = DateFormat('yyyy年MM月dd年').format(input);
+            ret = DateFormat('yyyy年MM月dd日').format(input);
         }
 
         return ret;
