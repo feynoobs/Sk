@@ -28,9 +28,9 @@ class _AuthenticationState extends State<Authentication>
     }
 
     @override
-    Widget build(BuildContext context)
+    Widget build(final BuildContext context)
     {
-        Map<String, String> params = ModalRoute.of(context)!.settings.arguments as Map<String, String>;
+        final Map<String, String> params = ModalRoute.of(context)!.settings.arguments as Map<String, String>;
         return Scaffold(
             appBar: const EmptyAppBar(),
             body: WebView(
