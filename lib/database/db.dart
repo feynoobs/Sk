@@ -92,40 +92,31 @@ class DB
         return _instance!;
     }
 
-    static Future<int> insert(Transaction txn, String table, List<Map<String, Object?>> datas)
-    {
-        _logger.v('insert(${txn}, ${table}, ${datas})');
-        Completer<int> computer = Completer<int>();
-        List<String?> binding = [];
 
-        String query = 'INSERT INTO ${table}(';
-        datas[0].forEach((key, value) {
-            query += '${key},';
-        });
-        query = query.substring(0, query.length - 1);
-        query += ')VALUES';
-        datas.forEach((Map<String, Object?> element) {
-            query += '(';
-            element.forEach((key1, value1) {
+    static void insert(final Batch batch, final String table, final List<Map<String, Object?>> datas)
+    {
+        _logger.v('insert(${batch}, ${table}, ${datas})');
+        for (int i = 0; i < datas.length; ++i) {
+            final List<String?> binding = [];
+            String query = 'INSERT INTO ${table}(';
+            datas[i].forEach((final String key, final Object? value) {
+                query += '${key},';
+            });
+            query = query.substring(0, query.length - 1);
+            query += ')VALUES(';
+            datas[i].forEach((final String key, final Object? value) {
                 query += '?,';
-                if (value1 == null) {
+                if (value == null) {
                     binding.add(null);
                 }
                 else {
-                    binding.add(value1.toString());
+                    binding.add(value.toString());
                 }
             });
             query = query.substring(0, query.length - 1);
-            query += '),';
-        });
-        query = query.substring(0, query.length - 1);
-        _logger.d(query);
-
-        txn.rawInsert(query, binding)
-        .then((int status) {
-            return computer.complete(status);
-        });
-
-        return computer.future;
+            query += ')';
+            _logger.d(query);
+            batch.rawInsert(query, binding);
+        }
     }
 }

@@ -84,10 +84,14 @@ class _HomeTimelineState extends State<HomeTimeline>
                     rdata['my'] = my;
                     rDatas.add(rdata);
                 }
-                await database.transaction((Transaction txn) async {
-                    await DB.insert(txn, 't_tweets', tweetDatas);
-                    await DB.insert(txn, 'r_home_tweets', rDatas);
-                });
+                if (tweetDatas.isNotEmpty == true) {
+                    await database.transaction((Transaction txn) async {
+                        Batch batch = txn.batch();
+                        DB.insert(batch, 't_tweets', tweetDatas);
+                        DB.insert(batch, 'r_home_tweets', rDatas);
+                        await batch.commit();
+                    });
+                }
             }
             _locked = false;
         }
@@ -331,7 +335,9 @@ class _HomeTimelineState extends State<HomeTimeline>
                     final String userJson = await ApiUsersShow().start(userData);
                     ++my;
                     await database.transaction((Transaction txn) async {
-                        await DB.insert(txn, 't_users', [{'user_id': params3['user_id'], 'oauth_token': params3['oauth_token'], 'oauth_token_secret': params3['oauth_token_secret'], 'my': my.toString(), 'data': userJson}]);
+                        final Batch batch = txn.batch();
+                        DB.insert(batch, 't_users', [{'user_id': params3['user_id'], 'oauth_token': params3['oauth_token'], 'oauth_token_secret': params3['oauth_token_secret'], 'my': my.toString(), 'data': userJson}]);
+                        await batch.commit();
                     });
                     await prefs.setInt('my', my);
                     await _getHomeTimeline();
@@ -372,6 +378,7 @@ class _HomeTimelineState extends State<HomeTimeline>
                         else {
                             _getHomeTimeline('next');
                         }
+                        _displayHomeTimeline();
                     }
                     return true;
                 }
