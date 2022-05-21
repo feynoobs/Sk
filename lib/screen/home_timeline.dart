@@ -400,12 +400,16 @@ class _HomeTimelineState extends State<HomeTimeline>
             ),
             floatingActionButton: FloatingActionButton(
                 onPressed: () async {
+                    setState(() {
+
+                    });
+                    /*
                     Database database = await DB.getInstance();
                     await database.rawDelete('DELETE FROM t_users');
                     await database.rawDelete('DELETE FROM t_tweets');
                     await database.rawDelete('DELETE FROM r_home_tweets');
-                    await database.rawDelete('DELETE FROM t_tweet_actions');
                     _logger.d('remove... done');
+                    */
                 },
                 child: const Icon(Icons.add)
             )

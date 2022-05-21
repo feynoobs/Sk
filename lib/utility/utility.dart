@@ -42,7 +42,7 @@ class Utility
         late final String ret;
         final int now = (DateTime.now().millisecondsSinceEpoch / 1000).floor();
 
-        final DateTime input = DateFormat('EEE MMM dd HH:mm:ss yyyy').parse(dateTime.replaceAll('+0000 ', ''));
+        DateTime input = DateFormat('EEE MMM dd HH:mm:ss yyyy').parse(dateTime.replaceAll('+0000 ', '')).add(const Duration(hours: 9));
         final int postTime =  (input.millisecondsSinceEpoch / 1000).floor();
         final int timeDiff = now - postTime;
 
