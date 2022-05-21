@@ -30,10 +30,11 @@ class _HomeTimelineState extends State<HomeTimeline>
     final List<Widget> _tweets = [];
     bool _locked = false;
 
-    Future<void> _getHomeTimeline([final String? type]) async
+    Future<int> _getHomeTimeline([final String? type]) async
     {
         _logger.v('_favBox(${type})');
 
+        int reflashed = 0;
         if (_locked == false) {
             _locked = true;
             final SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -69,8 +70,9 @@ class _HomeTimelineState extends State<HomeTimeline>
                 }
                 final String tweetJsonString = await ApiStatusesHomeTimeline().start(requestData);
                 final List<dynamic> tweetJsonObject = json.decode(tweetJsonString);
-                List<Map<String, Object?>> tweetDatas = [];
-                List<Map<String, Object?>> rDatas = [];
+                reflashed = tweetJsonObject.length;
+                final List<Map<String, Object?>> tweetDatas = [];
+                final List<Map<String, Object?>> rDatas = [];
                 for (int i = 0; i < tweetJsonObject.length; ++i) {
                     Map<String, Object?> data = {};
                     data['tweet_id'] = tweetJsonObject[i]['id'];
@@ -94,6 +96,18 @@ class _HomeTimelineState extends State<HomeTimeline>
                 }
             }
             _locked = false;
+        }
+
+        return reflashed;
+    }
+
+    Future<void> _reflashHomeTimeline(final String type) async
+    {
+        _logger.v('_reflashHomeTimeline()');
+
+        int reflashed = await _getHomeTimeline(type);
+        if (reflashed > 0) {
+            _displayHomeTimeline();
         }
     }
 
@@ -206,7 +220,6 @@ class _HomeTimelineState extends State<HomeTimeline>
         setState(() {
             for (int i = 0; i < tweets.length; ++i) {
                 final Map<String, Object?> tweetObject =  json.decode(tweets[i]['data']) as Map<String, Object?>;
-                _logger.e(tweetObject);
                 final Map<String, Object?> userObject = tweetObject['user'] as Map<String, Object?>;
                 final String? path = imager.loadImage(userObject['profile_image_url_https'] as String);
                 if (path != null) {
@@ -313,6 +326,8 @@ class _HomeTimelineState extends State<HomeTimeline>
 
     Future<void> _entry() async
     {
+        _logger.v('_entry()');
+
         final SharedPreferences prefs = await SharedPreferences.getInstance();
         int my = prefs.getInt('my') ?? 0;
 
@@ -350,8 +365,8 @@ class _HomeTimelineState extends State<HomeTimeline>
     @override
     void initState()
     {
-        _logger.v('initState()');
         super.initState();
+        _logger.v('initState()');
         _entry();
     }
 
@@ -373,12 +388,11 @@ class _HomeTimelineState extends State<HomeTimeline>
                 onNotification: (ScrollNotification notification) {
                     if (notification is OverscrollNotification) {
                         if (notification.overscroll >= 0.0) {
-                            _getHomeTimeline('prev');
+                            _reflashHomeTimeline('prev');
                         }
                         else {
-                            _getHomeTimeline('next');
+                            _reflashHomeTimeline('next');
                         }
-                        _displayHomeTimeline();
                     }
                     return true;
                 }
