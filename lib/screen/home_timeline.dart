@@ -46,7 +46,7 @@ class _HomeTimelineState extends State<HomeTimeline>
                 Map<String, String> requestData = {
                     'oauth_token': user[0]['oauth_token'] as String,
                     'oauth_token_secret': user[0]['oauth_token_secret'] as String,
-                    'count': 10.toString(),
+                    'count': 200.toString(),
                     'exclude_replies': false.toString(),
                     'contributor_details': false.toString(),
                     'include_rts': true.toString(),
@@ -218,6 +218,7 @@ class _HomeTimelineState extends State<HomeTimeline>
         }
 
         setState(() {
+            _tweets.clear();
             for (int i = 0; i < tweets.length; ++i) {
                 final Map<String, Object?> tweetObject =  json.decode(tweets[i]['data']) as Map<String, Object?>;
                 final Map<String, Object?> userObject = tweetObject['user'] as Map<String, Object?>;
