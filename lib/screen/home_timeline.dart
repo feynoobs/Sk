@@ -386,7 +386,7 @@ class _HomeTimelineState extends State<HomeTimeline>
                         return _tweets[index];
                     },
                 ),
-                onNotification: (ScrollNotification notification) {
+                onNotification: (final ScrollNotification notification) {
                     if (notification is OverscrollNotification) {
                         if (notification.overscroll >= 0.0) {
                             _reflashHomeTimeline('prev');
@@ -395,7 +395,7 @@ class _HomeTimelineState extends State<HomeTimeline>
                             _reflashHomeTimeline('next');
                         }
                     }
-                    return true;
+                    return false;
                 }
             ),
             floatingActionButton: FloatingActionButton(
