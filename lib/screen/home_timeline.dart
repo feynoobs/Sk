@@ -379,12 +379,14 @@ class _HomeTimelineState extends State<HomeTimeline>
          return Scaffold(
             appBar: const EmptyAppBar(),
             body: NotificationListener<ScrollNotification> (
-                child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: _tweets.length,
-                    itemBuilder: (context, index) {
-                        return _tweets[index];
-                    },
+                child: Scrollbar(
+                    child:  ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: _tweets.length,
+                        itemBuilder: (final BuildContext _, final int index) {
+                            return _tweets[index];
+                        },
+                    ),
                 ),
                 onNotification: (final ScrollNotification notification) {
                     if (notification is OverscrollNotification) {
