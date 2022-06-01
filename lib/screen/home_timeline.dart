@@ -29,6 +29,7 @@ class _HomeTimelineState extends State<HomeTimeline>
     final Logger _logger = Logger();
     final List<Widget> _tweets = [];
     bool _locked = false;
+    final ScrollController _scrollController = ScrollController();
 
     Future<int> _getHomeTimeline([final String? type]) async
     {
@@ -107,7 +108,7 @@ class _HomeTimelineState extends State<HomeTimeline>
 
         int reflashed = await _getHomeTimeline(type);
         if (reflashed > 0) {
-            _displayHomeTimeline();
+            _displayHomeTimeline(type);
         }
     }
 
@@ -191,8 +192,115 @@ class _HomeTimelineState extends State<HomeTimeline>
         return r;
     }
 
+    Container? _createTweetContainer(final Map<String, Object?> tweetObject, final Imager imager)
+    {
+        _logger.e(tweetObject);
+        final Map<String, Object?> userObject = tweetObject['user'] as Map<String, Object?>;
+        final String? path = imager.loadImage(userObject['profile_image_url_https'] as String);
+        Container? ret;
 
-    Future<void> _displayHomeTimeline() async
+        if (path != null) {
+            ret =  Container(
+                key: ValueKey((tweetObject['id'] as int)),
+                padding: const EdgeInsets.only(top: 2, bottom: 2),
+                decoration: const BoxDecoration(
+                    border: Border(
+                        bottom: BorderSide(
+                            color: Colors.grey,
+                            width: 0.2
+                        ),
+                    ),
+                ),
+                child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                        ClipOval(
+                            child: Image.file(File(path))
+                        ),
+                        Flexible(
+                            child: Container(
+                                margin: const EdgeInsets.only(left: 4),
+                                child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: <Widget>[
+                                        Row(
+                                            children: <Widget>[
+                                                Container(
+                                                    constraints: BoxConstraints(minWidth: 0, maxWidth: MediaQuery.of(context).size.width * 0.6),
+                                                    child: RichText(
+                                                        overflow: TextOverflow.ellipsis,
+                                                        text: TextSpan(
+                                                            children: <InlineSpan>[
+                                                                TextSpan(text: userObject['name'] as String, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+                                                                TextSpan(text: '@' + (userObject['screen_name'] as String), style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.black))
+                                                            ],
+                                                        )
+                                                    )
+                                                ),
+                                                const Text('･'),
+                                                Text(Utility.createFuzzyDateTime(tweetObject['created_at'] as String)),
+                                                const Spacer(),
+                                                Container(
+                                                    width: 16,
+                                                    height: 16,
+                                                    decoration: const BoxDecoration(
+                                                        image: DecorationImage(
+                                                            image: AssetImage('assets/images/other.png'),
+                                                            fit: BoxFit.scaleDown
+                                                        )
+                                                    )
+                                                )
+                                            ]
+                                        ),
+                                        Text(tweetObject['full_text'] as String, overflow: TextOverflow.clip),
+                                        Row(
+                                            children: <Widget>[
+                                                Row(
+                                                    children: <Widget>[
+                                                        Container(
+                                                            width: 16,
+                                                            height: 16,
+                                                            decoration: const BoxDecoration(
+                                                                image: DecorationImage(
+                                                                    image: AssetImage('assets/images/tweet_reply.png'),
+                                                                    fit: BoxFit.scaleDown
+                                                                )
+                                                            )
+                                                        ),
+                                                        Text(''),
+                                                    ]
+                                                ),
+                                                const Spacer(),
+                                                _rtBox(tweetObject),
+                                                const Spacer(),
+                                                _favBox(tweetObject),
+                                                const Spacer(),
+                                                Container(
+                                                    width: 16,
+                                                    height: 16,
+                                                    decoration: const BoxDecoration(
+                                                        image: DecorationImage(
+                                                            image: AssetImage('assets/images/tweet_share.png'),
+                                                            fit: BoxFit.scaleDown
+                                                        )
+                                                    )
+                                                ),
+                                                const Spacer(),
+                                            ]
+                                        )
+                                    ]
+                                )
+                            )
+                        )
+                    ]
+                )
+            );
+        }
+
+        return ret;
+    }
+
+    Future<void> _displayHomeTimeline([final String? type]) async
     {
         _logger.v('_displayHomeTimeline()');
 
@@ -218,108 +326,39 @@ class _HomeTimelineState extends State<HomeTimeline>
         }
 
         setState(() {
-            _tweets.clear();
             for (int i = 0; i < tweets.length; ++i) {
                 final Map<String, Object?> tweetObject =  json.decode(tweets[i]['data']) as Map<String, Object?>;
-                final Map<String, Object?> userObject = tweetObject['user'] as Map<String, Object?>;
-                final String? path = imager.loadImage(userObject['profile_image_url_https'] as String);
-                if (path != null) {
-                    _tweets.add(
-                        Container(
-                            padding: const EdgeInsets.only(top: 2, bottom: 2),
-                            decoration: const BoxDecoration(
-                                border: Border(
-                                    bottom: BorderSide(
-                                        color: Colors.grey,
-                                        width: 0.2
-                                    ),
-                                ),
-                            ),
-                            child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: <Widget>[
-                                    ClipOval(
-                                        child: Image.file(File(path))
-                                    ),
-                                    Flexible(
-                                        child: Container(
-                                            margin: const EdgeInsets.only(left: 4),
-                                            child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: <Widget>[
-                                                    Row(
-                                                        children: <Widget>[
-                                                            Container(
-                                                                constraints: BoxConstraints(minWidth: 0, maxWidth: MediaQuery.of(context).size.width * 0.6),
-                                                                child: RichText(
-                                                                    overflow: TextOverflow.ellipsis,
-                                                                    text: TextSpan(
-                                                                        children: <InlineSpan>[
-                                                                            TextSpan(text: userObject['name'] as String, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
-                                                                            TextSpan(text: '@' + (userObject['screen_name'] as String), style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.black))
-                                                                        ],
-                                                                    )
-                                                                )
-                                                            ),
-                                                            const Text('･'),
-                                                            Text(Utility.createFuzzyDateTime(tweetObject['created_at'] as String)),
-                                                            const Spacer(),
-                                                            Container(
-                                                                width: 16,
-                                                                height: 16,
-                                                                decoration: const BoxDecoration(
-                                                                    image: DecorationImage(
-                                                                        image: AssetImage('assets/images/other.png'),
-                                                                        fit: BoxFit.scaleDown
-                                                                    )
-                                                                )
-                                                            )
-                                                        ]
-                                                    ),
-                                                    Text(tweetObject['full_text'] as String, overflow: TextOverflow.clip),
-                                                    Row(
-                                                        children: <Widget>[
-                                                            Row(
-                                                                children: <Widget>[
-                                                                    Container(
-                                                                        width: 16,
-                                                                        height: 16,
-                                                                        decoration: const BoxDecoration(
-                                                                            image: DecorationImage(
-                                                                                image: AssetImage('assets/images/tweet_reply.png'),
-                                                                                fit: BoxFit.scaleDown
-                                                                            )
-                                                                        )
-                                                                    ),
-                                                                    Text(''),
-                                                                ]
-                                                            ),
-                                                            const Spacer(),
-                                                            _rtBox(tweetObject),
-                                                            const Spacer(),
-                                                            _favBox(tweetObject),
-                                                            const Spacer(),
-                                                            Container(
-                                                                width: 16,
-                                                                height: 16,
-                                                                decoration: const BoxDecoration(
-                                                                    image: DecorationImage(
-                                                                        image: AssetImage('assets/images/tweet_share.png'),
-                                                                        fit: BoxFit.scaleDown
-                                                                    )
-                                                                )
-                                                            ),
-                                                            const Spacer(),
-                                                        ]
-                                                    )
-                                                ]
-                                            )
-                                        )
-                                    )
-                                ]
-                            )
-                        )
-                    );
+                final Container? container = _createTweetContainer(tweetObject, imager);
+                if (container != null) {
+                    if (type == 'next') {
+                        _scrollController.jumpTo(100);
+                        if (_tweets.isNotEmpty == true) {
+                            final int value = (_tweets[0].key as ValueKey).value;
+                            if (value < tweets[i]['tweet_id']) {
+                                _tweets.insert(0, container);
+                            }
+                            else {
+                                break;
+                            }
+                        }
+                        else {
+                            _tweets.add(container);
+                        }
+                    }
+                    else {
+                        if (_tweets.isNotEmpty == true) {
+                            final int value = (_tweets[_tweets.length - 1].key as ValueKey).value;
+                            if (value > tweets[i]['tweet_id']) {
+                                _tweets.add(container);
+                            }
+                            else {
+                                break;
+                            }
+                        }
+                        else {
+                            _tweets.add(container);
+                        }
+                    }
                 }
             }
         });
@@ -381,6 +420,7 @@ class _HomeTimelineState extends State<HomeTimeline>
             body: NotificationListener<ScrollNotification> (
                 child: Scrollbar(
                     child:  ListView.builder(
+                        controller: _scrollController,
                         shrinkWrap: true,
                         itemCount: _tweets.length,
                         itemBuilder: (final BuildContext _, final int index) {
@@ -397,7 +437,7 @@ class _HomeTimelineState extends State<HomeTimeline>
                             _reflashHomeTimeline('next');
                         }
                     }
-                    return false;
+                    return true;
                 }
             ),
             floatingActionButton: FloatingActionButton(
