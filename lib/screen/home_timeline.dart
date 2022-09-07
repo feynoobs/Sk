@@ -104,7 +104,7 @@ class _HomeTimelineState extends State<HomeTimeline>
 
     Future<void> _reflashHomeTimeline(final String type) async
     {
-        _logger.v('_reflashHomeTimeline()');
+        _logger.v('_reflashHomeTimeline(${type})');
 
         int reflashed = await _getHomeTimeline(type);
         if (reflashed > 0) {
@@ -267,7 +267,6 @@ class _HomeTimelineState extends State<HomeTimeline>
                                                                 )
                                                             )
                                                         ),
-                                                        Text(''),
                                                     ]
                                                 ),
                                                 const Spacer(),
@@ -331,7 +330,6 @@ class _HomeTimelineState extends State<HomeTimeline>
                 final Container? container = _createTweetContainer(tweetObject, imager);
                 if (container != null) {
                     if (type == 'next') {
-                        _scrollController.jumpTo(100);
                         if (_tweets.isNotEmpty == true) {
                             final int value = (_tweets[0].key as ValueKey).value;
                             if (value < tweets[i]['tweet_id']) {
@@ -418,14 +416,17 @@ class _HomeTimelineState extends State<HomeTimeline>
          return Scaffold(
             appBar: const EmptyAppBar(),
             body: NotificationListener<ScrollNotification> (
-                child: Scrollbar(
-                    child:  ListView.builder(
-                        controller: _scrollController,
-                        shrinkWrap: true,
-                        itemCount: _tweets.length,
-                        itemBuilder: (final BuildContext _, final int index) {
-                            return _tweets[index];
-                        },
+                child: RefreshIndicator(
+                    onRefresh:  () async {},
+                    child: Scrollbar(
+                        child:  ListView.builder(
+                            controller: _scrollController,
+                            shrinkWrap: true,
+                            itemCount: _tweets.length,
+                            itemBuilder: (final BuildContext _, final int index) {
+                                return _tweets[index];
+                            },
+                        ),
                     ),
                 ),
                 onNotification: (final ScrollNotification notification) {
