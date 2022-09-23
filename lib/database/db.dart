@@ -86,6 +86,21 @@ class DB
                         CREATE UNIQUE INDEX r_home_tweets_unique_my_tweet_id ON r_home_tweets (my, tweet_id)
                     '''
                 );
+                db.execute(
+                    '''
+                        CREATE TABLE t_tweet_images(
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            tweet_id INTEGER NOT NULL,              -- ツィートID
+                            sort INTEGER NOT NULL,                  --
+                            file_name INTEGER NOT NULL              -- シーケンシャルな番号
+                        )
+                    '''
+                );
+                db.execute(
+                    '''
+                        CREATE UNIQUE INDEX t_tweet_images_unique_tweet_id_sort ON t_tweet_images (tweet_id, sort)
+                    '''
+                );
             })
         );
 
