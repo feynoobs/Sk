@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:logger/logger.dart';
 
 import 'common.dart';
@@ -30,7 +29,7 @@ class _HomeTimelineState extends State<HomeTimeline>
     final Logger _logger = Logger();
     final List<Widget> _tweets = [];
     bool _locked = false;
-    final AutoScrollController _scrollController = AutoScrollController();
+    final ScrollController _scrollController = ScrollController();
 
     Future<int> _getHomeTimeline([final String? type]) async
     {
@@ -326,7 +325,6 @@ class _HomeTimelineState extends State<HomeTimeline>
         }
 
         setState(() {
-            int forceScroll = 0;
             for (int i = 0; i < tweets.length; ++i) {
                 final Map<String, Object?> tweetObject =  json.decode(tweets[i]['data']) as Map<String, Object?>;
                 final Container? container = _createTweetContainer(tweetObject, imager);
@@ -336,7 +334,6 @@ class _HomeTimelineState extends State<HomeTimeline>
                             final int value = (_tweets[0].key as ValueKey).value;
                             if (value < tweets[i]['tweet_id']) {
                                 _tweets.insert(0, container);
-                                ++forceScroll;
                             }
                             else {
                                 break;
@@ -362,7 +359,6 @@ class _HomeTimelineState extends State<HomeTimeline>
                     }
                 }
             }
-            _scrollController.scrollToIndex(forceScroll);
         });
     }
 
@@ -421,20 +417,14 @@ class _HomeTimelineState extends State<HomeTimeline>
             appBar: const EmptyAppBar(),
             body: NotificationListener<ScrollNotification> (
                 child: RefreshIndicator(
-                    onRefresh: () async {},
+                    onRefresh:  () async {},
                     child: Scrollbar(
-                        child: ListView.builder(
+                        child:  ListView.builder(
                             controller: _scrollController,
                             shrinkWrap: true,
                             itemCount: _tweets.length,
                             itemBuilder: (final BuildContext _, final int index) {
-                                return AutoScrollTag(
-                                    key: _tweets[index].key!,
-                                    controller: _scrollController,
-                                    index: index,
-                                    child: _tweets[index],
-                                );
-                                // return _tweets[index];
+                                return _tweets[index];
                             },
                         ),
                     ),

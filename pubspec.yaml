@@ -44,7 +44,6 @@ dependencies:
   webview_flutter:
   intl:
   path_provider:
-  scroll_to_index:
 
 dev_dependencies:
   flutter_test:
