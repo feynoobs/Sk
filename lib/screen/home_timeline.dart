@@ -307,6 +307,7 @@ class _HomeTimelineState extends State<HomeTimeline>
         final int my = prefs.getInt('my') ?? 0;
         final Imager imager = Imager();
 
+        final direction = type == 'prev' ? 'DESC' : 'ASC';
         final Database database = await DB.getInstance();
         final List<Map<String, dynamic>> tweets = await database.rawQuery(
             '''
@@ -314,7 +315,7 @@ class _HomeTimelineState extends State<HomeTimeline>
             FROM t_tweets tt
             INNER JOIN r_home_tweets rht ON tt.tweet_id = rht.tweet_id
             WHERE my = ?
-            ORDER BY tt.tweet_id DESC
+            ORDER BY tt.tweet_id ${direction}
             ''', [my.toString()]);
         // 先に画像を保存しておく
         await imager.initialization();
@@ -324,41 +325,41 @@ class _HomeTimelineState extends State<HomeTimeline>
             await imager.saveImage(userObject['profile_image_url_https'] as String);
         }
 
-        setState(() {
-            for (int i = 0; i < tweets.length; ++i) {
-                final Map<String, Object?> tweetObject =  json.decode(tweets[i]['data']) as Map<String, Object?>;
-                final Container? container = _createTweetContainer(tweetObject, imager);
-                if (container != null) {
-                    if (type == 'next') {
-                        if (_tweets.isNotEmpty == true) {
-                            final int value = (_tweets[0].key as ValueKey).value;
-                            if (value < tweets[i]['tweet_id']) {
-                                _tweets.insert(0, container);
-                            }
-                            else {
-                                break;
-                            }
+        for (int i = 0; i < tweets.length; ++i) {
+            final Map<String, Object?> tweetObject =  json.decode(tweets[i]['data']) as Map<String, Object?>;
+            final Container? container = _createTweetContainer(tweetObject, imager);
+            if (container != null) {
+                if (type == 'next') {
+                    if (_tweets.isNotEmpty == true) {
+                        final int value = (_tweets[0].key as ValueKey).value;
+                        if (value < tweets[i]['tweet_id']) {
+                            _tweets.insert(0, container);
                         }
                         else {
-                            _tweets.add(container);
+                            break;
                         }
                     }
                     else {
-                        if (_tweets.isNotEmpty == true) {
-                            final int value = (_tweets[_tweets.length - 1].key as ValueKey).value;
-                            if (value > tweets[i]['tweet_id']) {
-                                _tweets.add(container);
-                            }
-                            else {
-                                break;
-                            }
-                        }
-                        else {
+                        _tweets.add(container);
+                    }
+                }
+                else {
+                    if (_tweets.isNotEmpty == true) {
+                        final int value = (_tweets[_tweets.length - 1].key as ValueKey).value;
+                        if (value > tweets[i]['tweet_id']) {
                             _tweets.add(container);
                         }
+                        else {
+                            break;
+                        }
+                    }
+                    else {
+                        _tweets.add(container);
                     }
                 }
             }
+        }
+        setState(() {
         });
     }
 
