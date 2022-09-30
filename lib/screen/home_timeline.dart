@@ -307,7 +307,7 @@ class _HomeTimelineState extends State<HomeTimeline>
         final int my = prefs.getInt('my') ?? 0;
         final Imager imager = Imager();
 
-        final direction = type == 'prev' ? 'DESC' : 'ASC';
+        final direction = type == 'prev' ? 'ASC' : 'DESC';
         final Database database = await DB.getInstance();
         final List<Map<String, dynamic>> tweets = await database.rawQuery(
             '''
