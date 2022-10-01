@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:logger/logger.dart';
+import 'package:scroll_to_index/scroll_to_index.dart';
 
 import 'common.dart';
 import '../database/db.dart';
@@ -29,7 +30,7 @@ class _HomeTimelineState extends State<HomeTimeline>
     final Logger _logger = Logger();
     final List<Widget> _tweets = [];
     bool _locked = false;
-    final ScrollController _scrollController = ScrollController();
+    final AutoScrollController _scrollController = AutoScrollController();
 
     Future<int> _getHomeTimeline([final String? type]) async
     {
@@ -325,6 +326,7 @@ class _HomeTimelineState extends State<HomeTimeline>
             await imager.saveImage(userObject['profile_image_url_https'] as String);
         }
 
+        int move = 0;
         for (int i = 0; i < tweets.length; ++i) {
             final Map<String, Object?> tweetObject =  json.decode(tweets[i]['data']) as Map<String, Object?>;
             final Container? container = _createTweetContainer(tweetObject, imager);
@@ -334,6 +336,7 @@ class _HomeTimelineState extends State<HomeTimeline>
                         final int value = (_tweets[0].key as ValueKey).value;
                         if (value < tweets[i]['tweet_id']) {
                             _tweets.insert(0, container);
+                            ++move;
                         }
                         else {
                             break;
@@ -360,6 +363,7 @@ class _HomeTimelineState extends State<HomeTimeline>
             }
         }
         setState(() {
+            _scrollController.scrollToIndex(move);
         });
     }
 
@@ -425,7 +429,14 @@ class _HomeTimelineState extends State<HomeTimeline>
                             shrinkWrap: true,
                             itemCount: _tweets.length,
                             itemBuilder: (final BuildContext _, final int index) {
-                                return _tweets[index];
+                                return AutoScrollTag(
+                                    key: _tweets[index].key!,
+                                    index: index,
+                                    controller: _scrollController,
+                                    child: _tweets[index],
+
+                                );
+                                // return _tweets[index];
                             },
                         ),
                     ),
