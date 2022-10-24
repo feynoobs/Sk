@@ -31,6 +31,7 @@ class _HomeTimelineState extends State<HomeTimeline>
     final List<Widget> _tweets = [];
     bool _locked = false;
     final AutoScrollController _scrollController = AutoScrollController();
+    int _move = 0;
 
     Future<int> _getHomeTimeline([final String? type]) async
     {
@@ -326,7 +327,6 @@ class _HomeTimelineState extends State<HomeTimeline>
             await imager.saveImage(userObject['profile_image_url_https'] as String);
         }
 
-        int move = 0;
         for (int i = 0; i < tweets.length; ++i) {
             final Map<String, Object?> tweetObject =  json.decode(tweets[i]['data']) as Map<String, Object?>;
             final Container? container = _createTweetContainer(tweetObject, imager);
@@ -336,7 +336,7 @@ class _HomeTimelineState extends State<HomeTimeline>
                         final int value = (_tweets[0].key as ValueKey).value;
                         if (value < tweets[i]['tweet_id']) {
                             _tweets.insert(0, container);
-                            ++move;
+                            ++_move;
                         }
                         else {
                             break;
@@ -363,7 +363,10 @@ class _HomeTimelineState extends State<HomeTimeline>
             }
         }
         setState(() {
-            _scrollController.scrollToIndex(move);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+                _scrollController.scrollToIndex(_move);
+                _move = 0;
+            });
         });
     }
 
@@ -455,9 +458,12 @@ class _HomeTimelineState extends State<HomeTimeline>
             ),
             floatingActionButton: FloatingActionButton(
                 onPressed: () async {
+                    _scrollController.scrollToIndex(10);
+                    /*
                     setState(() {
 
                     });
+                    */
                     /*
                     Database database = await DB.getInstance();
                     await database.rawDelete('DELETE FROM t_users');
