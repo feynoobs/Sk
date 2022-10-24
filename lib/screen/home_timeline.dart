@@ -29,7 +29,6 @@ class _HomeTimelineState extends State<HomeTimeline>
     final Logger _logger = Logger();
     final List<Widget> _tweets = [];
     bool _locked = false;
-    final ScrollController _scrollController = ScrollController();
 
     Future<int> _getHomeTimeline([final String? type]) async
     {
@@ -413,6 +412,7 @@ class _HomeTimelineState extends State<HomeTimeline>
     Widget build(BuildContext context)
     {
         _logger.v('build(${context})');
+        final ScrollController scrollController = ScrollController();
 
          return Scaffold(
             appBar: const EmptyAppBar(),
@@ -421,7 +421,7 @@ class _HomeTimelineState extends State<HomeTimeline>
                     onRefresh:  () async {},
                     child: Scrollbar(
                         child:  ListView.builder(
-                            controller: _scrollController,
+                            controller: scrollController,
                             shrinkWrap: true,
                             itemCount: _tweets.length,
                             itemBuilder: (final BuildContext _, final int index) {
