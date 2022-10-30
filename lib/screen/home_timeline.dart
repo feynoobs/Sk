@@ -63,7 +63,7 @@ class _HomeTimelineState extends State<HomeTimeline>
                         case 'prev':
                             final List<Map<String, Object?>>  tweets = await database.rawQuery('SELECT MIN(tweet_id) as min_id FROM r_home_tweets WHERE my = ?', [my.toString()]);
                             if (tweets[0]['min_id'] != null) {
-                                requestData['max_id'] = ((tweets[0]['min_id'] as int) - 1).toString();
+                                requestData['max_id'] = tweets[0]['min_id'].toString();
                             }
                             break;
                     }
@@ -306,7 +306,7 @@ class _HomeTimelineState extends State<HomeTimeline>
         final int my = prefs.getInt('my') ?? 0;
         final Imager imager = Imager();
 
-        final direction = type == 'prev' ? 'ASC' : 'DESC';
+        final direction = (type == 'next' ? 'ASC' : 'DESC');
         final Database database = await DB.getInstance();
         final List<Map<String, dynamic>> tweets = await database.rawQuery(
             '''
