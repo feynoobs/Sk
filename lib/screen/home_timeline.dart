@@ -27,7 +27,7 @@ class HomeTimeline extends StatefulWidget
 class _HomeTimelineState extends State<HomeTimeline>
 {
     final Logger _logger = Logger();
-    final List<Widget> _tweets = [];
+    List<Widget> _tweets = [];
     bool _locked = false;
 
     Future<int> _getHomeTimeline([final String? type]) async
@@ -306,7 +306,7 @@ class _HomeTimelineState extends State<HomeTimeline>
         final int my = prefs.getInt('my') ?? 0;
         final Imager imager = Imager();
 
-        final direction = (type == 'next' ? 'ASC' : 'DESC');
+        final direction = (type == 'next' ? 'DESC' : 'ASC');
         final Database database = await DB.getInstance();
         final List<Map<String, dynamic>> tweets = await database.rawQuery(
             '''
@@ -324,30 +324,31 @@ class _HomeTimelineState extends State<HomeTimeline>
             await imager.saveImage(userObject['profile_image_url_https'] as String);
         }
 
+        final List<Widget> tmp = [];
         for (int i = 0; i < tweets.length; ++i) {
             final Map<String, Object?> tweetObject =  json.decode(tweets[i]['data']) as Map<String, Object?>;
             final Container? container = _createTweetContainer(tweetObject, imager);
             if (container != null) {
                 if (type == 'next') {
-                    if (_tweets.isNotEmpty == true) {
-                        final int value = (_tweets[0].key as ValueKey).value;
-                        if (value < tweets[i]['tweet_id']) {
-                            _tweets.insert(0, container);
-                        }
+                    final int value = (_tweets[0].key as ValueKey).value;
+                    if (value < tweets[i]['tweet_id']) {
+                        tmp.add(container);
                     }
                     else {
-                        _tweets.add(container);
+                        _tweets = tmp + _tweets;
+                        break;
                     }
                 }
                 else {
                     if (_tweets.isNotEmpty == true) {
                         final int value = (_tweets[_tweets.length - 1].key as ValueKey).value;
                         if (value > tweets[i]['tweet_id']) {
-                            _tweets.add(container);
+                            tmp.insert(0, container);
                         }
-                    }
-                    else {
-                        _tweets.add(container);
+                        else {
+                            _tweets = _tweets + tmp;
+                            break;
+                        }
                     }
                 }
             }
