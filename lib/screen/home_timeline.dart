@@ -298,7 +298,7 @@ class _HomeTimelineState extends State<HomeTimeline>
         return ret;
     }
 
-    Future<void> _displayHomeTimeline([final String? type]) async
+    Future<void> _displayHomeTimeline(final String type) async
     {
         _logger.v('_displayHomeTimeline()');
 
@@ -334,9 +334,6 @@ class _HomeTimelineState extends State<HomeTimeline>
                         if (value < tweets[i]['tweet_id']) {
                             _tweets.insert(0, container);
                         }
-                        else {
-                            break;
-                        }
                     }
                     else {
                         _tweets.add(container);
@@ -347,9 +344,6 @@ class _HomeTimelineState extends State<HomeTimeline>
                         final int value = (_tweets[_tweets.length - 1].key as ValueKey).value;
                         if (value > tweets[i]['tweet_id']) {
                             _tweets.add(container);
-                        }
-                        else {
-                            break;
                         }
                     }
                     else {
@@ -397,7 +391,7 @@ class _HomeTimelineState extends State<HomeTimeline>
                 }
             }
         }
-        _displayHomeTimeline();
+        _displayHomeTimeline('next');
     }
 
     @override
