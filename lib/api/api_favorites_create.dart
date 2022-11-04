@@ -1,8 +1,8 @@
 import 'api_common.dart';
 
-class ApiUsersShow extends ApiCommon
+class ApiFavoritesCreate extends ApiCommon
 {
-    ApiUsersShow() : super('https://api.twitter.com/1.1/users/show.json', 'GET');
+    ApiFavoritesCreate() : super('https://api.twitter.com/1.1/favorites/create.json', 'POST');
 
     @override
     Future<String> start(Map<String, String> params)

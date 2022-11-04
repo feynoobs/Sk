@@ -7,7 +7,7 @@ class ApiStatusesHomeTimeline extends ApiCommon
     @override
     Future<String> start(Map<String, String> params)
     {
-        Map<String, String> fixedToken = {'oauth_token': params['oauth_token']!, 'oauth_token_secret': params['oauth_token_secret']!};
+        final Map<String, String> fixedToken = {'oauth_token': params['oauth_token']!, 'oauth_token_secret': params['oauth_token_secret']!};
         params.remove('oauth_token');
         params.remove('oauth_token_secret');
 

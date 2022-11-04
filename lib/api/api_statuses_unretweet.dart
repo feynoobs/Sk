@@ -1,8 +1,8 @@
 import 'api_common.dart';
 
-class ApiUsersShow extends ApiCommon
+class ApiStatusesUnretweet extends ApiCommon
 {
-    ApiUsersShow() : super('https://api.twitter.com/1.1/users/show.json', 'GET');
+    ApiStatusesUnretweet(final int id) : super('https://api.twitter.com/1.1/statuses/unretweet/${id}.json', 'POST');
 
     @override
     Future<String> start(Map<String, String> params)

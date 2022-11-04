@@ -13,6 +13,10 @@ import '../api/api_request_token.dart';
 import '../api/api_access_token.dart';
 import '../api/api_users_show.dart';
 import '../api/api_statuses_home_timeline.dart';
+import '../api/api_favorites_create.dart';
+import '../api/api_favorites_destroy.dart';
+import '../api/api_statuses_retweet.dart';
+import '../api/api_statuses_unretweet.dart';
 import '../utility/imager.dart';
 import '../utility/utility.dart';
 
@@ -32,7 +36,7 @@ class _HomeTimelineState extends State<HomeTimeline>
 
     Future<int> _getHomeTimeline([final String? type]) async
     {
-        _logger.v('_favBox(${type})');
+        _logger.v('_getHomeTimeline(${type})');
 
         int reflashed = 0;
         if (_locked == false) {
@@ -87,7 +91,7 @@ class _HomeTimelineState extends State<HomeTimeline>
                     rDatas.add(rdata);
                 }
                 if (tweetDatas.isNotEmpty == true) {
-                    await database.transaction((Transaction txn) async {
+                    await database.transaction((final Transaction txn) async {
                         Batch batch = txn.batch();
                         DB.insert(batch, 't_tweets', tweetDatas);
                         DB.insert(batch, 'r_home_tweets', rDatas);
@@ -111,87 +115,127 @@ class _HomeTimelineState extends State<HomeTimeline>
         }
     }
 
-    Row _favBox(final Map<String, Object?> tweetObject)
+    Future<Row> _favBox(final Map<String, Object?> tweetObject) async
     {
         _logger.v('_favBox(${tweetObject})');
-        Row r = Row(
+        final SharedPreferences prefs = await SharedPreferences.getInstance();
+        final int my = prefs.getInt('my') ?? 0;
+        final Database database = await DB.getInstance();
+        final List<Map<String, Object?>> user = await database.rawQuery('SELECT oauth_token, oauth_token_secret FROM t_users WHERE my = ?', [my.toString()]);
+        final Map<String, String> requestData = {
+            'oauth_token': user[0]['oauth_token'] as String,
+            'oauth_token_secret': user[0]['oauth_token_secret'] as String,
+            'id': tweetObject['id'].toString(),
+            'include_entities': true.toString(),
+            'tweet_mode': 'extended',
+        };
+
+        AssetImage image = const AssetImage('assets/images/tweet_favorite.png');
+        Function() tap = () async {
+            final String tweetJsonString = await ApiFavoritesCreate().start(requestData);
+            final dynamic tweetJsonObject = json.decode(tweetJsonString);
+            database.transaction((final Transaction txn) async {
+                Batch batch = txn.batch();
+                final Map<String, Object?> data = {'data': tweetJsonString};
+                database.update('t_tweets', data, where: 'tweet_id = ?', whereArgs: [tweetJsonObject['id']]);
+                await batch.commit();
+            });
+            setState(() {});
+        };
+        if (tweetObject['favorited'] == true) {
+            image = const AssetImage('assets/images/tweet_favorited.png');
+            tap = () async {
+                final String tweetJsonString = await ApiFavoritesDestroy().start(requestData);
+                final dynamic tweetJsonObject = json.decode(tweetJsonString);
+                database.transaction((final Transaction txn) async {
+                    Batch batch = txn.batch();
+                    final Map<String, Object?> data = {'data': tweetJsonString};
+                    database.update('t_tweets', data, where: 'tweet_id = ?', whereArgs: [tweetJsonObject['id']]);
+                    await batch.commit();
+                });
+                setState(() {});
+            };
+        }
+        return Row(
             children: <Widget>[
-                Container(
-                    width: 16,
-                    height: 16,
-                    decoration: const BoxDecoration(
-                        image: DecorationImage(
-                            image: AssetImage('assets/images/tweet_favorite.png'),
-                            fit: BoxFit.scaleDown
+                GestureDetector(
+                    onTap: tap,
+                    child: Container(
+                        width: 16,
+                        height: 16,
+                        decoration: BoxDecoration(
+                            image: DecorationImage(
+                                image: image,
+                                fit: BoxFit.scaleDown
+                            )
                         )
                     )
                 ),
                 Text(Utility.shrinkPosts(tweetObject['retweet_count'] as int))
             ]
         );
-
-        if (tweetObject['favorited'] == true) {
-            r = Row(
-                children: <Widget>[
-                    Container(
-                        width: 16,
-                        height: 16,
-                        decoration: const BoxDecoration(
-                            image: DecorationImage(
-                                image: AssetImage('assets/images/tweet_favorited.png'),
-                                fit: BoxFit.scaleDown
-                            )
-                        )
-                    ),
-                    Text(Utility.shrinkPosts(tweetObject['retweet_count'] as int))
-                ]
-            );
-        }
-
-        return r;
     }
 
-    Row _rtBox(final Map<String, Object?> tweetObject)
+    Future<Row> _rtBox(final Map<String, Object?> tweetObject) async
     {
         _logger.v('_rtBox(${tweetObject})');
-        Row r = Row(
+        final SharedPreferences prefs = await SharedPreferences.getInstance();
+        final int my = prefs.getInt('my') ?? 0;
+        final Database database = await DB.getInstance();
+        final List<Map<String, Object?>> user = await database.rawQuery('SELECT oauth_token, oauth_token_secret FROM t_users WHERE my = ?', [my.toString()]);
+        final Map<String, String> requestData = {
+            'oauth_token': user[0]['oauth_token'] as String,
+            'oauth_token_secret': user[0]['oauth_token_secret'] as String,
+            'include_entities': true.toString(),
+            'tweet_mode': 'extended',
+        };
+        AssetImage image = const AssetImage('assets/images/tweet_retweet.png');
+        Function() tap = () async {
+            final String tweetJsonString = await ApiStatusesRetweet(int.parse(tweetObject['id'] as String)).start(requestData);
+            final dynamic tweetJsonObject = json.decode(tweetJsonString);
+            database.transaction((final Transaction txn) async {
+                Batch batch = txn.batch();
+                final Map<String, Object?> data = {'data': tweetJsonString};
+                database.update('t_tweets', data, where: 'tweet_id = ?', whereArgs: [tweetJsonObject['id']]);
+                await batch.commit();
+            });
+            setState(() {});
+        };
+        if (tweetObject['retweeted'] == true) {
+            image = const AssetImage('assets/images/tweet_retweeted.png');
+            tap = () async {
+                final String tweetJsonString = await ApiStatusesUnretweet(int.parse(tweetObject['id'] as String)).start(requestData);
+                final dynamic tweetJsonObject = json.decode(tweetJsonString);
+                database.transaction((final Transaction txn) async {
+                    Batch batch = txn.batch();
+                    final Map<String, Object?> data = {'data': tweetJsonString};
+                    database.update('t_tweets', data, where: 'tweet_id = ?', whereArgs: [tweetJsonObject['id']]);
+                    await batch.commit();
+                });
+                setState(() {});
+            };
+        }
+        return Row(
             children: <Widget>[
-                Container(
-                    width: 16,
-                    height: 16,
-                    decoration: const BoxDecoration(
-                        image: DecorationImage(
-                            image: AssetImage('assets/images/tweet_retweet.png'),
-                            fit: BoxFit.scaleDown
+                GestureDetector(
+                    onTap: tap,
+                    child: Container(
+                        width: 16,
+                        height: 16,
+                        decoration: BoxDecoration(
+                            image: DecorationImage(
+                                image: image,
+                                fit: BoxFit.scaleDown
+                            )
                         )
                     )
                 ),
                 Text(Utility.shrinkPosts(tweetObject['retweet_count'] as int))
             ]
         );
-
-        if (tweetObject['retweeted'] == true) {
-            r = Row(
-                children: <Widget>[
-                    Container(
-                        width: 16,
-                        height: 16,
-                        decoration: const BoxDecoration(
-                            image: DecorationImage(
-                                image: AssetImage('assets/images/tweet_retweeted.png'),
-                                fit: BoxFit.scaleDown
-                            )
-                        )
-                    ),
-                    Text(Utility.shrinkPosts(tweetObject['retweet_count'] as int))
-                ]
-            );
-        }
-
-        return r;
     }
 
-    Container? _createTweetContainer(final Map<String, Object?> tweetObject, final Imager imager)
+    Future<Container?> _createTweetContainer(final Map<String, Object?> tweetObject, final Imager imager) async
     {
         _logger.e(tweetObject);
         final Map<String, Object?> userObject = tweetObject['user'] as Map<String, Object?>;
@@ -199,6 +243,8 @@ class _HomeTimelineState extends State<HomeTimeline>
         Container? ret;
 
         if (path != null) {
+            final Row fav = await _favBox(tweetObject);
+            final Row rt = await _rtBox(tweetObject);
             ret =  Container(
                 key: ValueKey((tweetObject['id'] as int)),
                 padding: const EdgeInsets.only(top: 2, bottom: 2),
@@ -269,9 +315,9 @@ class _HomeTimelineState extends State<HomeTimeline>
                                                     ]
                                                 ),
                                                 const Spacer(),
-                                                _rtBox(tweetObject),
+                                                rt,
                                                 const Spacer(),
-                                                _favBox(tweetObject),
+                                                fav,
                                                 const Spacer(),
                                                 Container(
                                                     width: 16,
@@ -327,31 +373,43 @@ class _HomeTimelineState extends State<HomeTimeline>
         final List<Widget> tmp = [];
         for (int i = 0; i < tweets.length; ++i) {
             final Map<String, Object?> tweetObject =  json.decode(tweets[i]['data']) as Map<String, Object?>;
-            final Container? container = _createTweetContainer(tweetObject, imager);
+            final Container? container = await _createTweetContainer(tweetObject, imager);
             if (container != null) {
                 if (type == 'next') {
-                    final int value = (_tweets[0].key as ValueKey).value;
-                    if (value < tweets[i]['tweet_id']) {
+                    if (_tweets.isEmpty) {
                         tmp.add(container);
                     }
                     else {
-                        _tweets = tmp + _tweets;
-                        break;
+                        final int value = (_tweets[0].key as ValueKey).value;
+                        if (value < tweets[i]['tweet_id']) {
+                            tmp.add(container);
+                        }
+                        else {
+                            break;
+                        }
                     }
                 }
                 else {
-                    if (_tweets.isNotEmpty == true) {
+                    if (_tweets.isEmpty) {
+                        tmp.insert(0, container);
+                    }
+                    else {
                         final int value = (_tweets[_tweets.length - 1].key as ValueKey).value;
                         if (value > tweets[i]['tweet_id']) {
                             tmp.insert(0, container);
                         }
                         else {
-                            _tweets = _tweets + tmp;
                             break;
                         }
                     }
                 }
             }
+        }
+        if (type == 'next') {
+            _tweets = tmp + _tweets;
+        }
+        else {
+            _tweets = _tweets + tmp;
         }
         setState(() {
         });
