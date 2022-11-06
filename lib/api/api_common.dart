@@ -19,9 +19,9 @@ abstract class ApiCommon
 
     ApiCommon(this._entryPoint, this._method);
 
-    Future<String> start(Map<String, String> params);
+    Future<String> start(final Map<String, String> params);
 
-    Future<String> startMain(Map<String, String> params, [Map<String, String>? fixedToken])
+    Future<String> startMain(final Map<String, String> params, [final Map<String, String>? fixedToken])
     {
         _logger.v('startMain(${params}, ${fixedToken})');
         Completer<String> computer = Completer<String>();
