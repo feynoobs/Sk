@@ -115,6 +115,16 @@ class _HomeTimelineState extends State<HomeTimeline>
         }
     }
 
+    Future<Map<String, String>> _getToken() async
+    {
+        final SharedPreferences prefs = await SharedPreferences.getInstance();
+        final int my = prefs.getInt('my') ?? 0;
+        final Database database = await DB.getInstance();
+        final List<Map<String, Object?>> user = await database.rawQuery('SELECT oauth_token, oauth_token_secret FROM t_users WHERE my = ?', [my.toString()]);
+
+        return {'oauth_token': user[0]['oauth_token'] as String, 'oauth_token_secret': user[0]['oauth_token_secret'] as String};
+    }
+
     Future<Row> _favBox(final Map<String, Object?> tweetObject) async
     {
         _logger.v('_favBox(${tweetObject})');
@@ -132,8 +142,18 @@ class _HomeTimelineState extends State<HomeTimeline>
 
         AssetImage image = const AssetImage('assets/images/tweet_favorite.png');
         Function() tap = () async {
+            final Map<String, String> token = await _getToken();
+            final Map<String, String> requestData = {
+                'oauth_token': token['oauth_token']!,
+                'oauth_token_secret': token['oauth_token_secret']!,
+                'id': tweetObject['id'].toString(),
+                'include_entities': true.toString(),
+                'tweet_mode': 'extended',
+            };
+
             final String tweetJsonString = await ApiFavoritesCreate().start(requestData);
             final dynamic tweetJsonObject = json.decode(tweetJsonString);
+
             database.transaction((final Transaction txn) async {
                 Batch batch = txn.batch();
                 final Map<String, Object?> data = {'data': tweetJsonString};
