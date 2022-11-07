@@ -36,8 +36,6 @@ class _HomeTimelineState extends State<HomeTimeline>
 
     Future<int> _getHomeTimeline([final String? type]) async
     {
-        _logger.v('_getHomeTimeline(${type})');
-
         int reflashed = 0;
         if (_locked == false) {
             _locked = true;
@@ -108,8 +106,6 @@ class _HomeTimelineState extends State<HomeTimeline>
 
     Future<void> _reflashHomeTimeline(final String type) async
     {
-        _logger.v('_reflashHomeTimeline(${type})');
-
         int reflashed = await _getHomeTimeline(type);
         if (reflashed > 0) {
             _displayHomeTimeline(type);
@@ -132,7 +128,6 @@ class _HomeTimelineState extends State<HomeTimeline>
 
     Future<Row> _favBox(final Map<String, Object?> tweetObject) async
     {
-        _logger.v('_favBox(${tweetObject})');
         final Database database = await DB.getInstance();
 
         AssetImage image = const AssetImage('assets/images/tweet_favorite.png');
@@ -147,6 +142,7 @@ class _HomeTimelineState extends State<HomeTimeline>
                     'tweet_mode': 'extended',
                 };
                 final String tweetJsonString = await ApiFavoritesCreate().start(requestData);
+                _logger.e(tweetJsonString);
                 final dynamic tweetJsonObject = json.decode(tweetJsonString);
 
                 database.transaction((final Transaction txn) async {
@@ -204,7 +200,6 @@ class _HomeTimelineState extends State<HomeTimeline>
 
     Future<Row> _rtBox(final Map<String, Object?> tweetObject) async
     {
-        _logger.v('_rtBox(${tweetObject})');
         final SharedPreferences prefs = await SharedPreferences.getInstance();
         final int my = prefs.getInt('my') ?? 0;
         final Database database = await DB.getInstance();
@@ -263,7 +258,6 @@ class _HomeTimelineState extends State<HomeTimeline>
 
     Future<Container?> _createTweetContainer(final Map<String, Object?> tweetObject, final Imager imager) async
     {
-        _logger.e(tweetObject);
         final Map<String, Object?> userObject = tweetObject['user'] as Map<String, Object?>;
         final String? path = imager.loadImage(userObject['profile_image_url_https'] as String);
         Container? ret;
@@ -372,8 +366,6 @@ class _HomeTimelineState extends State<HomeTimeline>
 
     Future<void> _displayHomeTimeline(final String type) async
     {
-        _logger.v('_displayHomeTimeline()');
-
         final SharedPreferences prefs = await SharedPreferences.getInstance();
         final int my = prefs.getInt('my') ?? 0;
         final Imager imager = Imager();
@@ -443,8 +435,6 @@ class _HomeTimelineState extends State<HomeTimeline>
 
     Future<void> _entry() async
     {
-        _logger.v('_entry()');
-
         final SharedPreferences prefs = await SharedPreferences.getInstance();
         int my = prefs.getInt('my') ?? 0;
 
@@ -483,14 +473,12 @@ class _HomeTimelineState extends State<HomeTimeline>
     void initState()
     {
         super.initState();
-        _logger.v('initState()');
         _entry();
     }
 
     @override
     Widget build(BuildContext context)
     {
-        _logger.v('build(${context})');
         final ScrollController scrollController = ScrollController();
 
          return Scaffold(

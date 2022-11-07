@@ -24,8 +24,8 @@ abstract class ApiCommon
     Future<String> startMain(final Map<String, String> params, [final Map<String, String>? fixedToken])
     {
         _logger.v('startMain(${params}, ${fixedToken})');
-        Completer<String> computer = Completer<String>();
-        Map<String, String> headerParams = {
+        final Completer<String> computer = Completer<String>();
+        final Map<String, String> headerParams = {
             'oauth_consumer_key': _API_KEY,
             'oauth_nonce': DateTime.now().toUtc().millisecondsSinceEpoch.toString(),
             'oauth_signature_method': 'HMAC-SHA1',
@@ -34,14 +34,13 @@ abstract class ApiCommon
         };
         String signatureKey = Uri.encodeFull(_API_SECRET) + '&';
         if (fixedToken == null) {
-            params.forEach((String key, String value) {
+            params.forEach((final String key, final String value) {
                 if (key == 'oauth_token_secret') {
                     signatureKey += Uri.encodeComponent(value);
                 }
                 else {
                     headerParams[key] = value;
                 }
-
             });
         }
         else {
@@ -50,21 +49,20 @@ abstract class ApiCommon
             headerParams.addAll(params);
         }
 
-        Map<String, String> sortParams = SplayTreeMap.from(headerParams, (String a, String b) => a.compareTo(b));
+        final Map<String, String> sortParams = SplayTreeMap.from(headerParams, (final String a, final String b) => a.compareTo(b));
         String query = '';
-        sortParams.forEach((key, value) {
-            value = Uri.encodeComponent(value);
-            query += '${key}=${value}&';
+        sortParams.forEach((final String key, final String value) {
+            query += '${key}=${Uri.encodeComponent(value)}&';
         });
         query = Uri.encodeComponent(query.substring(0, query.length - 1));
         final String encodeUrl = Uri.encodeComponent(_entryPoint);
         final String signatureData = '${_method}&${encodeUrl}&${query}';
+        _logger.e(signatureKey);
         sortParams['oauth_signature'] = base64.encode(Hmac(sha1, utf8.encode(signatureKey)).convert(utf8.encode(signatureData)).bytes);
 
         String header = '';
-        sortParams.forEach((key, value) {
-            value = Uri.encodeComponent(value);
-            header += '${key}=${value},';
+        sortParams.forEach((final String key, final String value) {
+            header += '${key}=${Uri.encodeComponent(value)},';
         });
         header = header.substring(0, header.length - 1);
 
@@ -78,12 +76,7 @@ abstract class ApiCommon
         }
         else {
             final Uri requstUrl = Uri.https(url.host, url.path);
-            String body = '';
-            params.forEach((key, value) {
-                body += '${key}=${value}&';
-            });
-            body = body.substring(0, body.length - 1);
-            http.post(requstUrl, body: body, headers: {
+            http.post(requstUrl, body: params, headers: {
                 'Authorization': 'OAuth ${header}',
             })
             .then((http.Response response) => computer.complete(response.body));
@@ -91,5 +84,4 @@ abstract class ApiCommon
 
         return computer.future;
     }
-
 }

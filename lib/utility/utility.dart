@@ -1,13 +1,9 @@
 import 'package:intl/intl.dart';
-import 'package:logger/logger.dart';
 
 class Utility
 {
-    static final Logger _logger = Logger();
-
     static Map<String, String> splitQuery(String query)
     {
-        _logger.v('splitQuery(${query})');
         final Map<String, String> ret = {};
 
         query.split('&').forEach((one) {
@@ -20,7 +16,6 @@ class Utility
 
     static String shrinkPosts(int posts)
     {
-        _logger.v('shrinkPosts(${posts})');
         String text = '';
         if (posts > 0) {
             NumberFormat formatter = NumberFormat('#,###');
@@ -32,13 +27,11 @@ class Utility
 
     static String now()
     {
-        _logger.v('now()');
         return DateTime.now().toString();
     }
 
     static String createFuzzyDateTime(String dateTime)
     {
-        _logger.v('createFuzzyDateTime(${dateTime})');
         late final String ret;
         final int now = (DateTime.now().millisecondsSinceEpoch / 1000).floor();
 
