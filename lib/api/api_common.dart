@@ -19,9 +19,9 @@ abstract class ApiCommon
 
     ApiCommon(this._entryPoint, this._method);
 
-    Future<String> start(final Map<String, String> params);
+    Future<String?> start(final Map<String, String> params);
 
-    Future<String> startMain(final Map<String, String> params, [final Map<String, String>? fixedToken])
+    Future<String?> startMain(final Map<String, String> params, [final Map<String, String>? fixedToken])
     {
         _logger.v('startMain(${params}, ${fixedToken})');
         final Completer<String> computer = Completer<String>();
@@ -57,7 +57,6 @@ abstract class ApiCommon
         query = Uri.encodeComponent(query.substring(0, query.length - 1));
         final String encodeUrl = Uri.encodeComponent(_entryPoint);
         final String signatureData = '${_method}&${encodeUrl}&${query}';
-        _logger.e(signatureKey);
         sortParams['oauth_signature'] = base64.encode(Hmac(sha1, utf8.encode(signatureKey)).convert(utf8.encode(signatureData)).bytes);
 
         String header = '';
@@ -72,14 +71,26 @@ abstract class ApiCommon
             http.get(requstUrl, headers: {
                 'Authorization': 'OAuth ${header}',
             })
-            .then((http.Response response) => computer.complete(response.body));
+            .then((final http.Response response) {
+                String? r = response.body;
+                if (response.statusCode != 200) {
+                    r = null;
+                }
+                computer.complete(r);
+            });
         }
         else {
             final Uri requstUrl = Uri.https(url.host, url.path);
             http.post(requstUrl, body: params, headers: {
                 'Authorization': 'OAuth ${header}',
             })
-            .then((http.Response response) => computer.complete(response.body));
+            .then((final http.Response response) {
+                String? r = response.body;
+                if (response.statusCode != 200) {
+                    r = null;
+                }
+                computer.complete(r);
+            });
         }
 
         return computer.future;

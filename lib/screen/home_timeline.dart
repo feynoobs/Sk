@@ -71,31 +71,33 @@ class _HomeTimelineState extends State<HomeTimeline>
                             break;
                     }
                 }
-                final String tweetJsonString = await ApiStatusesHomeTimeline().start(requestData);
-                final List<dynamic> tweetJsonObject = json.decode(tweetJsonString);
-                reflashed = tweetJsonObject.length;
-                final List<Map<String, Object?>> tweetDatas = [];
-                final List<Map<String, Object?>> rDatas = [];
-                for (int i = 0; i < tweetJsonObject.length; ++i) {
-                    Map<String, Object?> data = {};
-                    data['tweet_id'] = tweetJsonObject[i]['id'];
-                    data['user_id'] = tweetJsonObject[i]['user']['id'];
-                    data['data'] = json.encode(tweetJsonObject[i]);
-                    data['reply_tweet_id'] = tweetJsonObject[i]['in_reply_to_user_id'];
-                    tweetDatas.add(data);
+                final String? tweetJsonString = await ApiStatusesHomeTimeline().start(requestData);
+                if (tweetJsonString != null) {
+                    final List<dynamic> tweetJsonObject = json.decode(tweetJsonString);
+                    reflashed = tweetJsonObject.length;
+                    final List<Map<String, Object?>> tweetDatas = [];
+                    final List<Map<String, Object?>> rDatas = [];
+                    for (int i = 0; i < tweetJsonObject.length; ++i) {
+                        Map<String, Object?> data = {};
+                        data['tweet_id'] = tweetJsonObject[i]['id'];
+                        data['user_id'] = tweetJsonObject[i]['user']['id'];
+                        data['data'] = json.encode(tweetJsonObject[i]);
+                        data['reply_tweet_id'] = tweetJsonObject[i]['in_reply_to_user_id'];
+                        tweetDatas.add(data);
 
-                    Map<String, Object?> rdata = {};
-                    rdata['tweet_id'] = tweetJsonObject[i]['id'];
-                    rdata['my'] = my;
-                    rDatas.add(rdata);
-                }
-                if (tweetDatas.isNotEmpty == true) {
-                    await database.transaction((final Transaction txn) async {
-                        Batch batch = txn.batch();
-                        DB.insert(batch, 't_tweets', tweetDatas);
-                        DB.insert(batch, 'r_home_tweets', rDatas);
-                        await batch.commit();
-                    });
+                        Map<String, Object?> rdata = {};
+                        rdata['tweet_id'] = tweetJsonObject[i]['id'];
+                        rdata['my'] = my;
+                        rDatas.add(rdata);
+                    }
+                    if (tweetDatas.isNotEmpty == true) {
+                        await database.transaction((final Transaction txn) async {
+                            Batch batch = txn.batch();
+                            DB.insert(batch, 't_tweets', tweetDatas);
+                            DB.insert(batch, 'r_home_tweets', rDatas);
+                            await batch.commit();
+                        });
+                    }
                 }
             }
             _locked = false;
@@ -141,17 +143,18 @@ class _HomeTimelineState extends State<HomeTimeline>
                     'include_entities': true.toString(),
                     'tweet_mode': 'extended',
                 };
-                final String tweetJsonString = await ApiFavoritesCreate().start(requestData);
+                final String? tweetJsonString = await ApiFavoritesCreate().start(requestData);
                 _logger.e(tweetJsonString);
-                final dynamic tweetJsonObject = json.decode(tweetJsonString);
-
-                database.transaction((final Transaction txn) async {
-                    Batch batch = txn.batch();
-                    final Map<String, Object?> data = {'data': tweetJsonString};
-                    database.update('t_tweets', data, where: 'tweet_id = ?', whereArgs: [tweetJsonObject['id']]);
-                    await batch.commit();
-                });
-                setState(() {});
+                if (tweetJsonString != null) {
+                    final dynamic tweetJsonObject = json.decode(tweetJsonString);
+                    database.transaction((final Transaction txn) async {
+                        Batch batch = txn.batch();
+                        final Map<String, Object?> data = {'data': tweetJsonString};
+                        batch.update('t_tweets', data, where: 'tweet_id = ?', whereArgs: [tweetJsonObject['id']]);
+                        await batch.commit();
+                    });
+                    setState(() {});
+                }
             }
         };
         if (tweetObject['favorited'] == true) {
@@ -166,15 +169,17 @@ class _HomeTimelineState extends State<HomeTimeline>
                         'include_entities': true.toString(),
                         'tweet_mode': 'extended',
                     };
-                    final String tweetJsonString = await ApiFavoritesDestroy().start(requestData);
-                    final dynamic tweetJsonObject = json.decode(tweetJsonString);
-                    database.transaction((final Transaction txn) async {
-                        Batch batch = txn.batch();
-                        final Map<String, Object?> data = {'data': tweetJsonString};
-                        database.update('t_tweets', data, where: 'tweet_id = ?', whereArgs: [tweetJsonObject['id']]);
-                        await batch.commit();
-                    });
-                    setState(() {});
+                    final String? tweetJsonString = await ApiFavoritesDestroy().start(requestData);
+                    if (tweetJsonString != null) {
+                        final dynamic tweetJsonObject = json.decode(tweetJsonString);
+                        database.transaction((final Transaction txn) async {
+                            Batch batch = txn.batch();
+                            final Map<String, Object?> data = {'data': tweetJsonString};
+                            batch.update('t_tweets', data, where: 'tweet_id = ?', whereArgs: [tweetJsonObject['id']]);
+                            await batch.commit();
+                        });
+                        setState(() {});
+                    }
                 }
             };
         }
@@ -212,28 +217,50 @@ class _HomeTimelineState extends State<HomeTimeline>
         };
         AssetImage image = const AssetImage('assets/images/tweet_retweet.png');
         Function() tap = () async {
-            final String tweetJsonString = await ApiStatusesRetweet(int.parse(tweetObject['id'] as String)).start(requestData);
-            final dynamic tweetJsonObject = json.decode(tweetJsonString);
-            database.transaction((final Transaction txn) async {
-                Batch batch = txn.batch();
-                final Map<String, Object?> data = {'data': tweetJsonString};
-                database.update('t_tweets', data, where: 'tweet_id = ?', whereArgs: [tweetJsonObject['id']]);
-                await batch.commit();
-            });
-            setState(() {});
+            final Map<String, String>? token = await _getToken();
+            if (token != null) {
+                final Map<String, String> requestData = {
+                    'oauth_token': token['oauth_token']!,
+                    'oauth_token_secret': token['oauth_token_secret']!,
+                    'include_entities': true.toString(),
+                    'tweet_mode': 'extended',
+                };
+                final String? tweetJsonString = await ApiStatusesRetweet(int.parse(tweetObject['id'] as String)).start(requestData);
+                if (tweetJsonString != null) {
+                    final dynamic tweetJsonObject = json.decode(tweetJsonString);
+                    database.transaction((final Transaction txn) async {
+                        Batch batch = txn.batch();
+                        final Map<String, Object?> data = {'data': tweetJsonString};
+                        batch.update('t_tweets', data, where: 'tweet_id = ?', whereArgs: [tweetJsonObject['id']]);
+                        await batch.commit();
+                    });
+                    setState(() {});
+                }
+            }
         };
         if (tweetObject['retweeted'] == true) {
             image = const AssetImage('assets/images/tweet_retweeted.png');
             tap = () async {
-                final String tweetJsonString = await ApiStatusesUnretweet(int.parse(tweetObject['id'] as String)).start(requestData);
-                final dynamic tweetJsonObject = json.decode(tweetJsonString);
-                database.transaction((final Transaction txn) async {
-                    Batch batch = txn.batch();
-                    final Map<String, Object?> data = {'data': tweetJsonString};
-                    database.update('t_tweets', data, where: 'tweet_id = ?', whereArgs: [tweetJsonObject['id']]);
-                    await batch.commit();
-                });
-                setState(() {});
+                final Map<String, String>? token = await _getToken();
+                if (token != null) {
+                    final Map<String, String> requestData = {
+                        'oauth_token': token['oauth_token']!,
+                        'oauth_token_secret': token['oauth_token_secret']!,
+                        'include_entities': true.toString(),
+                        'tweet_mode': 'extended',
+                    };
+                    final String? tweetJsonString = await ApiStatusesUnretweet(int.parse(tweetObject['id'] as String)).start(requestData);
+                    if (tweetJsonString != null) {
+                        final dynamic tweetJsonObject = json.decode(tweetJsonString);
+                        database.transaction((final Transaction txn) async {
+                            Batch batch = txn.batch();
+                            final Map<String, Object?> data = {'data': tweetJsonString};
+                            batch.update('t_tweets', data, where: 'tweet_id = ?', whereArgs: [tweetJsonObject['id']]);
+                            await batch.commit();
+                        });
+                        setState(() {});
+                    }
+                }
             };
         }
         return Row(
@@ -441,28 +468,34 @@ class _HomeTimelineState extends State<HomeTimeline>
         final Database database = await DB.getInstance();
         final List<Map<String, Object?>> users = await database.rawQuery('SELECT oauth_token, oauth_token_secret FROM t_users WHERE my = ?', [my.toString()]);
         if (users.isEmpty == true) {
-            final String query = await ApiRequestToken().start({});
-            final Map<String, String> params = Utility.splitQuery(query);
-            final dynamic callback = await Navigator.pushNamed(context, 'authentication', arguments: params);
-            if (callback != null) {
-                final String query2 = (callback as String).replaceAll('${ApiCommon.CALLBACK_URL}?', '');
-                final Map<String, String> params2 = Utility.splitQuery(query2);
-                // 認証拒否された場合は処理しない
-                // 拒否されたばあい「denied」が付与されるので否定
-                if (params2.containsKey('denied') == false) {
-                    params2['oauth_token_secret'] = params['oauth_token_secret']!;
-                    final String query3 = await ApiAccessToken().start(params2);
-                    final Map<String, String> params3 = Utility.splitQuery(query3);
-                    final Map<String, String> userData = {'oauth_token': params3['oauth_token']!, 'oauth_token_secret': params3['oauth_token_secret']!, 'user_id': params3['user_id']!};
-                    final String userJson = await ApiUsersShow().start(userData);
-                    ++my;
-                    await database.transaction((Transaction txn) async {
-                        final Batch batch = txn.batch();
-                        DB.insert(batch, 't_users', [{'user_id': params3['user_id'], 'oauth_token': params3['oauth_token'], 'oauth_token_secret': params3['oauth_token_secret'], 'my': my.toString(), 'data': userJson}]);
-                        await batch.commit();
-                    });
-                    await prefs.setInt('my', my);
-                    await _getHomeTimeline();
+            final String? query = await ApiRequestToken().start({});
+            if (query != null) {
+                final Map<String, String> params = Utility.splitQuery(query);
+                final dynamic callback = await Navigator.pushNamed(context, 'authentication', arguments: params);
+                if (callback != null) {
+                    final String query2 = (callback as String).replaceAll('${ApiCommon.CALLBACK_URL}?', '');
+                    final Map<String, String> params2 = Utility.splitQuery(query2);
+                    // 認証拒否された場合は処理しない
+                    // 拒否されたばあい「denied」が付与されるので否定
+                    if (params2.containsKey('denied') == false) {
+                        params2['oauth_token_secret'] = params['oauth_token_secret']!;
+                        final String? query3 = await ApiAccessToken().start(params2);
+                        if (query3 != null) {
+                            final Map<String, String> params3 = Utility.splitQuery(query3);
+                            final Map<String, String> userData = {'oauth_token': params3['oauth_token']!, 'oauth_token_secret': params3['oauth_token_secret']!, 'user_id': params3['user_id']!};
+                            final String? userJson = await ApiUsersShow().start(userData);
+                            if (userJson != null) {
+                                ++my;
+                                await database.transaction((Transaction txn) async {
+                                    final Batch batch = txn.batch();
+                                    DB.insert(batch, 't_users', [{'user_id': params3['user_id'], 'oauth_token': params3['oauth_token'], 'oauth_token_secret': params3['oauth_token_secret'], 'my': my.toString(), 'data': userJson}]);
+                                    await batch.commit();
+                                });
+                                await prefs.setInt('my', my);
+                                await _getHomeTimeline();
+                            }
+                        }
+                    }
                 }
             }
         }

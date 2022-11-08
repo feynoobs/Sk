@@ -5,7 +5,7 @@ class ApiAccessToken extends ApiCommon
     ApiAccessToken() : super('https://api.twitter.com/oauth/access_token', 'POST');
 
     @override
-    Future<String> start(final Map<String, String> params)
+    Future<String?> start(final Map<String, String> params)
     {
         return startMain(params);
     }
