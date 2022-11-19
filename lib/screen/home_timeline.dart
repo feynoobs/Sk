@@ -31,7 +31,7 @@ class HomeTimeline extends StatefulWidget
 class _HomeTimelineState extends State<HomeTimeline>
 {
     final Logger _logger = Logger();
-    List<Widget> _tweets = [];
+    List<Container> _tweets = [];
     bool _locked = false;
 
     Future<int> _getHomeTimeline([final String? type]) async
@@ -75,29 +75,23 @@ class _HomeTimelineState extends State<HomeTimeline>
                 if (tweetJsonString != null) {
                     final List<dynamic> tweetJsonObject = json.decode(tweetJsonString);
                     reflashed = tweetJsonObject.length;
-                    final List<Map<String, Object?>> tweetDatas = [];
-                    final List<Map<String, Object?>> rDatas = [];
-                    for (int i = 0; i < tweetJsonObject.length; ++i) {
-                        Map<String, Object?> data = {};
-                        data['tweet_id'] = tweetJsonObject[i]['id'];
-                        data['user_id'] = tweetJsonObject[i]['user']['id'];
-                        data['data'] = json.encode(tweetJsonObject[i]);
-                        data['reply_tweet_id'] = tweetJsonObject[i]['in_reply_to_user_id'];
-                        tweetDatas.add(data);
+                    await database.transaction((final Transaction txn) async {
+                        Batch batch = txn.batch();
+                        for (int i = 0; i < tweetJsonObject.length; ++i) {
+                            Map<String, Object?> data = {};
+                            data['tweet_id'] = tweetJsonObject[i]['id'];
+                            data['user_id'] = tweetJsonObject[i]['user']['id'];
+                            data['data'] = json.encode(tweetJsonObject[i]);
+                            data['reply_tweet_id'] = tweetJsonObject[i]['in_reply_to_user_id'];
+                            batch.insert('t_tweets', data);
 
-                        Map<String, Object?> rdata = {};
-                        rdata['tweet_id'] = tweetJsonObject[i]['id'];
-                        rdata['my'] = my;
-                        rDatas.add(rdata);
-                    }
-                    if (tweetDatas.isNotEmpty == true) {
-                        await database.transaction((final Transaction txn) async {
-                            Batch batch = txn.batch();
-                            DB.insert(batch, 't_tweets', tweetDatas);
-                            DB.insert(batch, 'r_home_tweets', rDatas);
-                            await batch.commit();
-                        });
-                    }
+                            Map<String, Object?> rdata = {};
+                            rdata['tweet_id'] = tweetJsonObject[i]['id'];
+                            rdata['my'] = my;
+                            batch.insert('r_home_tweets', rdata);
+                        }
+                        await batch.commit();
+                    });
                 }
             }
             _locked = false;
@@ -112,6 +106,17 @@ class _HomeTimelineState extends State<HomeTimeline>
         if (reflashed > 0) {
             _displayHomeTimeline(type);
         }
+    }
+
+    void _updateOne(final Database database, final String tweetJsonString)
+    {
+        final dynamic tweetJsonObject = json.decode(tweetJsonString);
+        database.transaction((final Transaction txn) async {
+            Batch batch = txn.batch();
+            final Map<String, Object?> data = {'data': tweetJsonString};
+            batch.update('t_tweets', data, where: 'tweet_id = ?', whereArgs: [tweetJsonObject['id']]);
+            await batch.commit();
+        });
     }
 
     Future<Map<String, String>?> _getToken() async
@@ -130,10 +135,9 @@ class _HomeTimelineState extends State<HomeTimeline>
 
     Future<Row> _favBox(final Map<String, Object?> tweetObject) async
     {
-        final Database database = await DB.getInstance();
-
         AssetImage image = const AssetImage('assets/images/tweet_favorite.png');
         Function() tap = () async {
+            final Database database = await DB.getInstance();
             final Map<String, String>? token = await _getToken();
             if (token != null) {
                 final Map<String, String> requestData = {
@@ -146,20 +150,16 @@ class _HomeTimelineState extends State<HomeTimeline>
                 final String? tweetJsonString = await ApiFavoritesCreate().start(requestData);
                 _logger.e(tweetJsonString);
                 if (tweetJsonString != null) {
-                    final dynamic tweetJsonObject = json.decode(tweetJsonString);
-                    database.transaction((final Transaction txn) async {
-                        Batch batch = txn.batch();
-                        final Map<String, Object?> data = {'data': tweetJsonString};
-                        batch.update('t_tweets', data, where: 'tweet_id = ?', whereArgs: [tweetJsonObject['id']]);
-                        await batch.commit();
+                    setState(() {
+                        _updateOne(database, tweetJsonString);
                     });
-                    setState(() {});
                 }
             }
         };
         if (tweetObject['favorited'] == true) {
             image = const AssetImage('assets/images/tweet_favorited.png');
             tap = () async {
+                final Database database = await DB.getInstance();
                 final Map<String, String>? token = await _getToken();
                 if (token != null) {
                     final Map<String, String> requestData = {
@@ -171,14 +171,9 @@ class _HomeTimelineState extends State<HomeTimeline>
                     };
                     final String? tweetJsonString = await ApiFavoritesDestroy().start(requestData);
                     if (tweetJsonString != null) {
-                        final dynamic tweetJsonObject = json.decode(tweetJsonString);
-                        database.transaction((final Transaction txn) async {
-                            Batch batch = txn.batch();
-                            final Map<String, Object?> data = {'data': tweetJsonString};
-                            batch.update('t_tweets', data, where: 'tweet_id = ?', whereArgs: [tweetJsonObject['id']]);
-                            await batch.commit();
+                        setState(() {
+                            _updateOne(database, tweetJsonString);
                         });
-                        setState(() {});
                     }
                 }
             };
@@ -205,18 +200,9 @@ class _HomeTimelineState extends State<HomeTimeline>
 
     Future<Row> _rtBox(final Map<String, Object?> tweetObject) async
     {
-        final SharedPreferences prefs = await SharedPreferences.getInstance();
-        final int my = prefs.getInt('my') ?? 0;
-        final Database database = await DB.getInstance();
-        final List<Map<String, Object?>> user = await database.rawQuery('SELECT oauth_token, oauth_token_secret FROM t_users WHERE my = ?', [my.toString()]);
-        final Map<String, String> requestData = {
-            'oauth_token': user[0]['oauth_token'] as String,
-            'oauth_token_secret': user[0]['oauth_token_secret'] as String,
-            'include_entities': true.toString(),
-            'tweet_mode': 'extended',
-        };
         AssetImage image = const AssetImage('assets/images/tweet_retweet.png');
         Function() tap = () async {
+            final Database database = await DB.getInstance();
             final Map<String, String>? token = await _getToken();
             if (token != null) {
                 final Map<String, String> requestData = {
@@ -227,20 +213,16 @@ class _HomeTimelineState extends State<HomeTimeline>
                 };
                 final String? tweetJsonString = await ApiStatusesRetweet(int.parse(tweetObject['id'] as String)).start(requestData);
                 if (tweetJsonString != null) {
-                    final dynamic tweetJsonObject = json.decode(tweetJsonString);
-                    database.transaction((final Transaction txn) async {
-                        Batch batch = txn.batch();
-                        final Map<String, Object?> data = {'data': tweetJsonString};
-                        batch.update('t_tweets', data, where: 'tweet_id = ?', whereArgs: [tweetJsonObject['id']]);
-                        await batch.commit();
+                    setState(() {
+                        _updateOne(database, tweetJsonString);
                     });
-                    setState(() {});
                 }
             }
         };
         if (tweetObject['retweeted'] == true) {
             image = const AssetImage('assets/images/tweet_retweeted.png');
             tap = () async {
+                final Database database = await DB.getInstance();
                 final Map<String, String>? token = await _getToken();
                 if (token != null) {
                     final Map<String, String> requestData = {
@@ -251,14 +233,9 @@ class _HomeTimelineState extends State<HomeTimeline>
                     };
                     final String? tweetJsonString = await ApiStatusesUnretweet(int.parse(tweetObject['id'] as String)).start(requestData);
                     if (tweetJsonString != null) {
-                        final dynamic tweetJsonObject = json.decode(tweetJsonString);
-                        database.transaction((final Transaction txn) async {
-                            Batch batch = txn.batch();
-                            final Map<String, Object?> data = {'data': tweetJsonString};
-                            batch.update('t_tweets', data, where: 'tweet_id = ?', whereArgs: [tweetJsonObject['id']]);
-                            await batch.commit();
+                        setState(() {
+                            _updateOne(database, tweetJsonString);
                         });
-                        setState(() {});
                     }
                 }
             };
@@ -415,7 +392,7 @@ class _HomeTimelineState extends State<HomeTimeline>
             await imager.saveImage(userObject['profile_image_url_https'] as String);
         }
 
-        final List<Widget> tmp = [];
+        final List<Container> tmp = [];
         for (int i = 0; i < tweets.length; ++i) {
             final Map<String, Object?> tweetObject =  json.decode(tweets[i]['data']) as Map<String, Object?>;
             final Container? container = await _createTweetContainer(tweetObject, imager);
@@ -488,7 +465,7 @@ class _HomeTimelineState extends State<HomeTimeline>
                                 ++my;
                                 await database.transaction((Transaction txn) async {
                                     final Batch batch = txn.batch();
-                                    DB.insert(batch, 't_users', [{'user_id': params3['user_id'], 'oauth_token': params3['oauth_token'], 'oauth_token_secret': params3['oauth_token_secret'], 'my': my.toString(), 'data': userJson}]);
+                                    batch.insert('t_users', {'user_id': params3['user_id'], 'oauth_token': params3['oauth_token'], 'oauth_token_secret': params3['oauth_token_secret'], 'my': my.toString(), 'data': userJson});
                                     await batch.commit();
                                 });
                                 await prefs.setInt('my', my);
@@ -544,16 +521,13 @@ class _HomeTimelineState extends State<HomeTimeline>
             ),
             floatingActionButton: FloatingActionButton(
                 onPressed: () async {
-                    setState(() {
-
-                    });
-                    /*
                     Database database = await DB.getInstance();
                     await database.rawDelete('DELETE FROM t_users');
                     await database.rawDelete('DELETE FROM t_tweets');
                     await database.rawDelete('DELETE FROM r_home_tweets');
                     _logger.d('remove... done');
-                    */
+                    setState(() {
+                    });
                 },
                 child: const Icon(Icons.add)
             )
