@@ -108,15 +108,24 @@ class _HomeTimelineState extends State<HomeTimeline>
         }
     }
 
-    void _updateOne(final Database database, final String tweetJsonString)
+    void _updateOne(final Database database, final String tweetJsonString) async
     {
-        final dynamic tweetJsonObject = json.decode(tweetJsonString);
+        final Map<String, Object?> tweetJsonObject = json.decode(tweetJsonString);
+        final Imager imager = Imager();
         database.transaction((final Transaction txn) async {
             Batch batch = txn.batch();
             final Map<String, Object?> data = {'data': tweetJsonString};
             batch.update('t_tweets', data, where: 'tweet_id = ?', whereArgs: [tweetJsonObject['id']]);
             await batch.commit();
         });
+        final Container? container = await _createTweetContainer(tweetJsonObject, imager);
+        if (container != null) {
+            for (int i = 0; i < _tweets.length; ++i) {
+                if (_tweets[i].key == tweetJsonObject['id']) {
+                    _tweets[i] = container;
+                }
+            }
+        }
     }
 
     Future<Map<String, String>?> _getToken() async
