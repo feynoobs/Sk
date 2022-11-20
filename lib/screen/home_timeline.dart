@@ -75,7 +75,7 @@ class _HomeTimelineState extends State<HomeTimeline>
                 if (tweetJsonString != null) {
                     final List<dynamic> tweetJsonObject = json.decode(tweetJsonString);
                     reflashed = tweetJsonObject.length;
-                    await database.transaction((final Transaction txn) async {
+                    database.transaction((final Transaction txn) async {
                         Batch batch = txn.batch();
                         for (int i = 0; i < tweetJsonObject.length; ++i) {
                             Map<String, Object?> data = {};
@@ -90,7 +90,7 @@ class _HomeTimelineState extends State<HomeTimeline>
                             rdata['my'] = my;
                             batch.insert('r_home_tweets', rdata);
                         }
-                        await batch.commit();
+                        batch.commit();
                     });
                 }
             }
@@ -108,15 +108,16 @@ class _HomeTimelineState extends State<HomeTimeline>
         }
     }
 
-    void _updateOne(final Database database, final String tweetJsonString) async
+    Future<void> _updateOne(final Database database, final String tweetJsonString) async
     {
         final Map<String, Object?> tweetJsonObject = json.decode(tweetJsonString);
         final Imager imager = Imager();
+        await imager.initialization();
         database.transaction((final Transaction txn) async {
             Batch batch = txn.batch();
             final Map<String, Object?> data = {'data': tweetJsonString};
             batch.update('t_tweets', data, where: 'tweet_id = ?', whereArgs: [tweetJsonObject['id']]);
-            await batch.commit();
+            batch.commit();
         });
         final Container? container = await _createTweetContainer(tweetJsonObject, imager);
         if (container != null) {
@@ -472,10 +473,10 @@ class _HomeTimelineState extends State<HomeTimeline>
                             final String? userJson = await ApiUsersShow().start(userData);
                             if (userJson != null) {
                                 ++my;
-                                await database.transaction((Transaction txn) async {
+                                database.transaction((Transaction txn) async {
                                     final Batch batch = txn.batch();
                                     batch.insert('t_users', {'user_id': params3['user_id'], 'oauth_token': params3['oauth_token'], 'oauth_token_secret': params3['oauth_token_secret'], 'my': my.toString(), 'data': userJson});
-                                    await batch.commit();
+                                    batch.commit();
                                 });
                                 await prefs.setInt('my', my);
                                 await _getHomeTimeline();
