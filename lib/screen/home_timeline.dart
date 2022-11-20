@@ -122,7 +122,8 @@ class _HomeTimelineState extends State<HomeTimeline>
         final Container? container = await _createTweetContainer(tweetJsonObject, imager);
         if (container != null) {
             for (int i = 0; i < _tweets.length; ++i) {
-                if (_tweets[i].key == tweetJsonObject['id']) {
+                _logger.v('${(_tweets[i].key as ValueKey).value}:${tweetJsonObject['id']}');
+                if ((_tweets[i].key as ValueKey).value == tweetJsonObject['id']) {
                     _tweets[i] = container;
                 }
             }

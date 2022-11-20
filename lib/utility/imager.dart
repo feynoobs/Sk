@@ -23,7 +23,7 @@ class Imager
             final File fileObject = File(dirObject.path + file);
 
             if (fileObject.existsSync() != true) {
-                await dirObject.create(recursive: true);
+                dirObject.createSync(recursive: true);
                 final http.Response response = await http.get(uri);
                 fileObject.writeAsBytesSync(response.bodyBytes);
             }
