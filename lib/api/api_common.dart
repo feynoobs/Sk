@@ -24,7 +24,7 @@ abstract class ApiCommon
     Future<String?> startMain(final Map<String, String> params, [final Map<String, String>? fixedToken])
     {
         _logger.v('startMain(${params}, ${fixedToken})');
-        final Completer<String> computer = Completer<String>();
+        final Completer<String?> computer = Completer<String?>();
         final Map<String, String> headerParams = {
             'oauth_consumer_key': _API_KEY,
             'oauth_nonce': DateTime.now().toUtc().millisecondsSinceEpoch.toString(),

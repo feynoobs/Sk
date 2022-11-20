@@ -125,6 +125,7 @@ class _HomeTimelineState extends State<HomeTimeline>
                 _logger.v('${(_tweets[i].key as ValueKey).value}:${tweetJsonObject['id']}');
                 if ((_tweets[i].key as ValueKey).value == tweetJsonObject['id']) {
                     _tweets[i] = container;
+                    break;
                 }
             }
         }
@@ -159,7 +160,6 @@ class _HomeTimelineState extends State<HomeTimeline>
                     'tweet_mode': 'extended',
                 };
                 final String? tweetJsonString = await ApiFavoritesCreate().start(requestData);
-                _logger.e(tweetJsonString);
                 if (tweetJsonString != null) {
                     setState(() {
                         _updateOne(database, tweetJsonString);
@@ -204,7 +204,7 @@ class _HomeTimelineState extends State<HomeTimeline>
                         )
                     )
                 ),
-                Text(Utility.shrinkPosts(tweetObject['retweet_count'] as int))
+                Text(Utility.shrinkPosts(tweetObject['favorite_count'] as int))
             ]
         );
     }
